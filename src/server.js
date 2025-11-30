@@ -1,11 +1,10 @@
-//import required modules
 const express = require('express');
 const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io'); 
 const { initializeSocket } = require('./socket/socketHandler');
 const { testConnection } = require('./config/database');
-const { initRedis, closeRedis } = require('./config/redis');
+const { initRedis, closeRedis, isAvailable: isRedisAvailable } = require('./config/redis');
 
 // Load environment variables based on NODE_ENV
 const dotenv = require('dotenv');
@@ -147,9 +146,12 @@ app.use(express.static('.'));
 // Health check endpoint
 app.get('/health', async (req, res) => {
   const dbStatus = await testConnection();
+  const redisStatus = isRedisAvailable();
   res.json({
     server: 'running',
-    database: dbStatus ? 'connected' : 'disconnected'
+    database: dbStatus ? 'connected' : 'disconnected',
+    redis: redisStatus ? 'connected' : 'fallback (in-memory)',
+    mode: redisStatus ? 'full' : 'degraded'
   });
 });
 
@@ -181,13 +183,20 @@ async function startServer() {
   }
   
   // Initialize Redis (non-blocking - server starts even if Redis fails)
-  initRedis().catch(() => {
-    // Redis initialization will log its own errors, no need for additional warning
-  });
+  try {
+    await initRedis();
+    console.log('✓ Redis connected - full functionality available');
+  } catch (error) {
+    console.log('⚠️  Redis unavailable - running in memory-fallback mode');
+    console.log('   Some features may have reduced persistence across server restarts');
+  }
   
   // Start HTTP server
   server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    if (!isRedisAvailable()) {
+      console.log('📝 Note: Redis is not connected. Using in-memory fallback for caching.');
+    }
   });
 }
 
