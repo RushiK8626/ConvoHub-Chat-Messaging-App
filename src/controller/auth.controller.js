@@ -68,6 +68,7 @@ const bcrypt = require('bcrypt');
 const prisma = new PrismaClient();
 const otpService = require('../services/otp.service');
 const jwtService = require('../services/jwt.service');
+const userCacheService = require('../services/user-cache.service');
 
 // In-memory store for pending registrations (use Map with automatic cleanup)
 const pendingRegistrations = new Map(); // username -> { userData, otpCode, expiresAt, timeoutId }
@@ -710,19 +711,8 @@ exports.logout = async (req, res) => {
 // Get current user (requires JWT)
 exports.getCurrentUser = async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { user_id: req.user.user_id },
-      select: {
-        user_id: true,
-        username: true,
-        email: true,
-        full_name: true,
-        phone: true,
-        profile_pic: true,
-        status_message: true,
-        created_at: true
-      }
-    });
+    // Use cache-first approach via userCacheService
+    const user = await userCacheService.getUserProfile(req.user.user_id);
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });

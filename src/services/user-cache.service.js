@@ -20,7 +20,9 @@ const cacheUserProfile = async (user) => {
       username: String(user.username || ''),
       email: String(user.email || ''),
       full_name: String(user.full_name || ''),
+      phone: String(user.phone || ''),
       profile_pic: String(user.profile_pic || ''),
+      status_message: String(user.status_message || ''),
       bio: String(user.bio || ''),
       created_at: user.created_at ? String(user.created_at) : String(Date.now())
     });
@@ -52,7 +54,9 @@ const getCachedUserProfile = async (userId) => {
       username: cached.username,
       email: cached.email,
       full_name: cached.full_name,
+      phone: cached.phone || null,
       profile_pic: cached.profile_pic,
+      status_message: cached.status_message || null,
       bio: cached.bio,
       created_at: cached.created_at
     };
@@ -85,8 +89,9 @@ const getUserProfile = async (userId) => {
         username: true,
         email: true,
         full_name: true,
+        phone: true,
         profile_pic: true,
-        bio: true,
+        status_message: true,
         created_at: true
       }
     });

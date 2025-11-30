@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const cacheService = require('../services/cache.service');
 
 // ========== ARCHIVE CHAT ==========
 // Hide chat but keep it (can be restored)
@@ -210,6 +211,10 @@ exports.deleteChat = async (req, res) => {
         hidden_at: new Date()
       }
     });
+
+    // Invalidate cache for this specific user's view of this chat
+    // This ensures the next fetch will query the database with correct visibility filters
+    await cacheService.invalidateUserChatCache(parseInt(chatId), userId);
 
     res.json({
       message: 'Chat deleted successfully',
@@ -701,6 +706,11 @@ exports.batchDeleteChats = async (req, res) => {
           }
         })
       )
+    );
+
+    // Invalidate cache for this specific user's view of all deleted chats
+    await Promise.all(
+      parsedChatIds.map(chatId => cacheService.invalidateUserChatCache(chatId, userId))
     );
 
     res.json({
