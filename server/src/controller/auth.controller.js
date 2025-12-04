@@ -77,7 +77,7 @@ const pendingRegistrations = new Map(); // username -> { userData, otpCode, expi
 const pendingLogins = new Map(); // userId -> { otpCode, expiresAt, timeoutId, userData }
 
 // Cleanup expired registrations periodically
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [username, data] of pendingRegistrations.entries()) {
     if (data.expiresAt < now) {
@@ -723,5 +723,12 @@ exports.getCurrentUser = async (req, res) => {
   } catch (error) {
     console.error('Get current user error:', error);
     res.status(500).json({ error: 'Failed to get user' });
+  }
+};
+
+// Cleanup function for tests
+exports.cleanup = () => {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
   }
 };

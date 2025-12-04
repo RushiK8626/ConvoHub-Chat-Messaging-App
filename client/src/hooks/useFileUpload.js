@@ -22,7 +22,7 @@ const useFileUpload = () => {
         }
 
         const token = localStorage.getItem("accessToken");
-        const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:3001";
+        const apiUrl = (process.env.REACT_APP_API_URL || "http://localhost:3001").replace(/\/+$/, "");
 
         const xhr = new XMLHttpRequest();
 

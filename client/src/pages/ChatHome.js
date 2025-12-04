@@ -1026,8 +1026,9 @@ const ChatHome = () => {
       }
 
       try {
-        const API_URL =
-          process.env.REACT_APP_API_URL || "http://localhost:3001";
+        const API_URL = (
+          process.env.REACT_APP_API_URL || "http://localhost:3001"
+        ).replace(/\/+$/, "");
         const token = localStorage.getItem("accessToken");
         const res = await fetch(
           `${API_URL}/api/users/public/search?query=${encodeURIComponent(
@@ -1229,8 +1230,9 @@ const ChatHome = () => {
         .map((key) => Number(key));
 
       if (selectedChatIds.length > 0) {
-        const API_URL =
-          process.env.REACT_APP_API_URL || "http://localhost:3001";
+        const API_URL = (
+          process.env.REACT_APP_API_URL || "http://localhost:3001"
+        ).replace(/\/+$/, "");
         const token = localStorage.getItem("accessToken");
         const fullUrl = `${API_URL}/api/chat-visibility/batch/delete`;
 
@@ -1283,10 +1285,11 @@ const ChatHome = () => {
         .map((key) => Number(key));
 
       if (selectedChatIds.length > 0) {
-        const API_URL =
-          process.env.REACT_APP_API_URL || "http://localhost:3001";
+        const API_URL = (
+          process.env.REACT_APP_API_URL || "http://localhost:3001"
+        ).replace(/\/+$/, "");
         const token = localStorage.getItem("accessToken");
-        const fullUrl = `${API_URL}/api/chat-visibility//batch/mark-read`;
+        const fullUrl = `${API_URL}/api/chat-visibility/batch/mark-read`;
 
         const res = await fetch(fullUrl, {
           method: "POST",
@@ -1325,8 +1328,9 @@ const ChatHome = () => {
         .map((key) => Number(key));
 
       if (selectedChatIds.length > 0) {
-        const API_URL =
-          process.env.REACT_APP_API_URL || "http://localhost:3001";
+        const API_URL = (
+          process.env.REACT_APP_API_URL || "http://localhost:3001"
+        ).replace(/\/+$/, "");
         const token = localStorage.getItem("accessToken");
         const fullUrl = `${API_URL}/api/chat-visibility/batch/pin`;
 

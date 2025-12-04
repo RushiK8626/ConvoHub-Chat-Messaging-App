@@ -45,7 +45,7 @@ const Profile = () => {
         const token = localStorage.getItem("accessToken");
         const res = await fetch(
           `${
-            process.env.REACT_APP_API_URL || "http://localhost:3001"
+            (process.env.REACT_APP_API_URL || "http://localhost:3001").replace(/\/+$/, "")
           }/api/auth/me`,
           {
             headers: {
@@ -64,7 +64,7 @@ const Profile = () => {
           if (userData.profile_pic) {
             const filename = userData.profile_pic.split("/uploads/").pop();
             profilePicUrl = `${
-              process.env.REACT_APP_API_URL || "http://localhost:3001"
+              (process.env.REACT_APP_API_URL || "http://localhost:3001").replace(/\/+$/, "")
             }/uploads/profiles/${filename}`;
           }
 
@@ -124,7 +124,7 @@ const Profile = () => {
       const token = localStorage.getItem("accessToken");
       const response = await fetch(
         `${
-          process.env.REACT_APP_API_URL || "http://localhost:3001"
+          (process.env.REACT_APP_API_URL || "http://localhost:3001").replace(/\/+$/, "")
         }/api/users/${userId}`,
         {
           method: "PUT",
@@ -203,7 +203,7 @@ const Profile = () => {
       const token = localStorage.getItem("accessToken");
       const response = await fetch(
         `${
-          process.env.REACT_APP_API_URL || "http://localhost:3001"
+          (process.env.REACT_APP_API_URL || "http://localhost:3001").replace(/\/+$/, "")
         }/uploads/profile-pic`,
         {
           // ✅ Changed from '/upload/'
@@ -222,7 +222,7 @@ const Profile = () => {
         if (data.profile_pic) {
           const filename = data.profile_pic.split("/uploads/").pop();
           const newProfilePicUrl = `${
-            process.env.REACT_APP_API_URL || "http://localhost:3001"
+            (process.env.REACT_APP_API_URL || "http://localhost:3001").replace(/\/+$/, "")
           }/uploads/profiles/${filename}`;
 
           setProfileData((prev) => ({

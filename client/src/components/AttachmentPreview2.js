@@ -8,7 +8,7 @@ const AttachmentPreview = ({ attachment }) => {
   const [showFullscreen, setShowFullscreen] = useState(false);
   const [error, setError] = useState(null);
 
-  const base = process.env.REACT_APP_API_URL || "http://localhost:3001";
+  const base = (process.env.REACT_APP_API_URL || "http://localhost:3001").replace(/\/+$/, "");
 
   // Extract filename from various possible attachment properties
   const getFilename = () => {

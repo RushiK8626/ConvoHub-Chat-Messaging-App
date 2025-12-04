@@ -31,7 +31,7 @@ const UserProfile = ({
         const token = localStorage.getItem("accessToken");
         const res = await fetch(
           `${
-            process.env.REACT_APP_API_URL || "http://localhost:3001"
+            (process.env.REACT_APP_API_URL || "http://localhost:3001").replace(/\/+$/, "")
           }/api/users/public/id/${userId}`,
           {
             headers: {
@@ -120,7 +120,7 @@ const UserProfile = ({
               {profile?.profile_pic ? (
                 <img
                   src={`${
-                    process.env.REACT_APP_API_URL || "http://localhost:3001"
+                    (process.env.REACT_APP_API_URL || "http://localhost:3001").replace(/\/+$/, "")
                   }/uploads/profiles/${String(profile.profile_pic)
                     .split("/uploads/")
                     .pop()}`}

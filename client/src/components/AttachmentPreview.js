@@ -9,7 +9,7 @@ const AttachmentPreview = ({ attachment, isUploading = false, uploadProgress = 0
   const [mimeType, setMimeType] = useState(null);
   const [showFullscreen, setShowFullscreen] = useState(false);
 
-  const base = process.env.REACT_APP_API_URL || "http://localhost:3001";
+  const base = (process.env.REACT_APP_API_URL || "http://localhost:3001").replace(/\/+$/, "");
 
   const getFilename = (fileUrl) => {
     if (!fileUrl) return "file";

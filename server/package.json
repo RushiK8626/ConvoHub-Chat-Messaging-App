@@ -4,7 +4,6 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
     "start:prod": "NODE_ENV=production node src/server.js",
     "dev": "nodemon src/server.js",
@@ -15,7 +14,17 @@
     "db:push:prod": "dotenv -e .env.production -- prisma db push",
     "db:studio": "prisma studio",
     "db:seed": "node prisma/seed.js",
-    "db:reset:seed": "npm run db:clear && npx prisma db push && npm run db:seed"
+    "db:reset:seed": "npm run db:clear && npx prisma db push && npm run db:seed",
+    "test": "jest --forceExit --detectOpenHandles",
+    "test:watch": "jest --watch --forceExit --detectOpenHandles",
+    "test:services": "jest tests/services --forceExit --detectOpenHandles",
+    "test:routes": "jest tests/routes --forceExit --detectOpenHandles",
+    "test:middleware": "jest tests/middleware --forceExit --detectOpenHandles",
+    "coverage": "jest --coverage --forceExit --detectOpenHandles",
+    "coverage:services": "jest tests/services --coverage --forceExit --detectOpenHandles",
+    "coverage:routes": "jest tests/routes --coverage --forceExit --detectOpenHandles",
+    "coverage:middleware": "jest tests/middleware --coverage --forceExit --detectOpenHandles",
+    "coverage:html": "jest --coverage --coverageReporters=html --forceExit --detectOpenHandles"
   },
   "keywords": [],
   "author": "",
@@ -41,8 +50,10 @@
   },
   "devDependencies": {
     "axios": "^1.6.0",
+    "jest": "^30.2.0",
     "nodemon": "^3.1.10",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "supertest": "^7.1.4"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

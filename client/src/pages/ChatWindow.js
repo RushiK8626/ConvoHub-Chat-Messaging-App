@@ -1426,8 +1426,9 @@ const ChatWindow = ({
       }
 
       try {
-        const API_URL =
-          process.env.REACT_APP_API_URL || "http://localhost:3001";
+        const API_URL = (
+          process.env.REACT_APP_API_URL || "http://localhost:3001"
+        ).replace(/\/+$/, "");
         const token = localStorage.getItem("accessToken");
         const res = await fetch(
           `${API_URL}/api/users/public/search?query=${encodeURIComponent(
