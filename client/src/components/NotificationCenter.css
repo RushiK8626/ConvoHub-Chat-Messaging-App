@@ -302,48 +302,12 @@
   color: #ff4757;
 }
 
-/* Responsive Design */
-@media (max-width: 480px) {
-  .notification-panel {
-    position: fixed;
-    top: 60px;
-    left: 50%;
-    transform: translateX(-50%);
-    right: auto;
-    width: calc(100vw - 20px);
-    max-width: 350px;
-    max-height: calc(100vh - 100px);
-    margin-top: 0;
-  }
-
-  .notification-center {
-    position: relative;
-  }
-
-  .notification-bell {
-    padding: 8px;
-  }
-
-  .header-actions {
-    flex-direction: row;
-    gap: 4px;
-  }
-
-  .mark-all-read-btn,
-  .clear-all-btn {
-    font-size: 11px;
-    padding: 3px 6px;
-  }
-}
-
 /* Ensure notification panel stays within viewport on all mobile sizes */
 @media (max-width: 899px) {
   .notification-panel {
     position: fixed;
     top: 60px;
-    left: 50%;
-    transform: translateX(-50%);
-    right: auto;
+    right: 10%;
     width: calc(100vw - 20px);
     max-width: 350px;
     max-height: calc(100vh - 100px);
