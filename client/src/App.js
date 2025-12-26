@@ -13,6 +13,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ChatHome from "./pages/ChatHome";
 import ChatWindow from "./pages/ChatWindow";
+import AIChatWindow from "./pages/AIChatWindow";
 import Profile from "./pages/Profile";
 import UserProfile from "./pages/UserProfile";
 import Settings from "./pages/Settings";
@@ -59,6 +60,10 @@ function App() {
               <Route
                 path="/chat/:chatId"
                 element={hasToken ? <ChatWindow /> : <Navigate to="/login" />}
+              />
+              <Route
+                path="/ai-chat"
+                element={hasToken ? <AIChatWindow /> : <Navigate to="/login" />}
               />
               <Route
                 path="/profile"
