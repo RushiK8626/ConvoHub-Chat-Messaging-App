@@ -355,6 +355,7 @@ exports.checkStatus = async (req, res) => {
         'summarization',
         'language_detection',
         'conversation_starters',
+        'ai_chat',
       ] : [],
       message: isConfigured 
         ? 'AI service is configured and ready (powered by Google Gemini)'
@@ -364,6 +365,36 @@ exports.checkStatus = async (req, res) => {
     console.error('Error checking AI status:', error);
     res.status(500).json({ 
       error: 'Failed to check AI service status',
+      details: error.message,
+    });
+  }
+};
+
+/**
+ * AI Chat - Have a conversation with AI
+ * POST /api/ai/chat
+ * Body: { message: string, conversation_history?: Array }
+ */
+exports.aiChat = async (req, res) => {
+  try {
+    const { message, conversation_history = [] } = req.body;
+    const userId = req.user.user_id;
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const response = await aiService.generateChatResponse(message.trim(), conversation_history);
+
+    res.status(200).json({
+      success: true,
+      response,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Error in aiChat:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate AI response',
       details: error.message,
     });
   }

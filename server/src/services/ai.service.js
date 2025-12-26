@@ -291,6 +291,60 @@ const isConfigured = () => {
   return !!process.env.GEMINI_API_KEY;
 };
 
+/**
+ * Generate AI chat response for conversational AI feature
+ * @param {string} userMessage - User's message
+ * @param {Array<Object>} conversationHistory - Previous messages [{role: 'user'|'assistant', content: string}]
+ * @returns {Promise<string>} - AI response
+ */
+const generateChatResponse = async (userMessage, conversationHistory = []) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('Gemini API key not configured');
+    }
+
+    const model = genAI.getGenerativeModel({ 
+      model: AI_CONFIG.model,
+      generationConfig: {
+        maxOutputTokens: 1024,
+        temperature: 0.8,
+      },
+    });
+
+    // Build conversation context from history
+    const historyText = conversationHistory
+      .slice(-20) // Last 20 messages for context
+      .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+      .join('\n');
+
+    const prompt = `You are a helpful, friendly AI assistant in a chat application called ConvoHub. 
+Be conversational, helpful, and concise in your responses. You can use emojis when appropriate to make the conversation feel natural.
+If asked about yourself, mention you're an ConvoHub AI assistant, here to help users.
+If asked who developed you, mention about ConvoHub Developers.
+Keep responses focused and avoid being overly verbose unless the user asks for detailed explanations.
+
+IMPORTANT: Format your responses using Markdown for better readability:
+- Use **bold** for emphasis on important points
+- Use *italic* for subtle emphasis
+- Use \`code\` for inline code and \`\`\` for code blocks with language specification
+- Use bullet points (- or *) for lists
+- Use numbered lists (1. 2. 3.) when order matters
+- Use > for blockquotes
+- Use ### for section headers when organizing longer responses
+
+${historyText ? `Previous conversation:\n${historyText}\n\n` : ''}User: ${userMessage}
+
+Respond naturally as a helpful assistant using Markdown formatting:`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text().trim();
+  } catch (error) {
+    console.error('Error generating chat response:', error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   generateSmartReplies,
   translateMessage,
@@ -298,4 +352,5 @@ module.exports = {
   detectLanguage,
   generateConversationStarters,
   isConfigured,
+  generateChatResponse,
 };

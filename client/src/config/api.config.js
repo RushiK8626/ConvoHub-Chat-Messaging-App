@@ -52,6 +52,8 @@ const config = {
       upload: "/api/messages/upload",
       markRead: (messageId) => `/api/messages/${messageId}/read`,
       delete: (messageId) => `/api/messages/${messageId}`,
+      deleteBatch: "/api/messages/batch",
+      clearChat: (chatId) => `/api/messages/chat/${chatId}/clear`,
     },
     notifications: {
       vapidPublicKey: "/api/notifications/vapid-public-key",

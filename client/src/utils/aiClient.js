@@ -103,6 +103,36 @@ export const getConversationStarters = async (chatId) => {
   }
 };
 
+const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
+
+export const sendAIMessage = async (message, conversationHistory = []) => {
+  const token = localStorage.getItem('accessToken');
+  
+  const response = await fetch(`${API_URL}/api/ai/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ message, conversation_history: conversationHistory }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to get AI response');
+  }
+
+  return response.json();
+};
+
+// AI Assistant info constant
+export const AI_ASSISTANT = {
+  id: 'ai-assistant',
+  name: 'AI Assistant',
+  avatar: '🤖',
+  description: 'Your helpful AI companion powered by Gemini',
+  isAI: true,
+};
+
 export default {
   getSmartReplies,
   translateText,

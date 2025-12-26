@@ -3,6 +3,12 @@ const router = express.Router();
 const aiController = require('../controller/ai.controller');
 const { verifyToken } = require('../middleware/auth.middleware');
 
+console.log('AI Routes loaded');
+
+router.get('/test', (req, res) => {
+  res.json({ message: 'AI routes are working' });
+});
+
 // All AI routes require authentication
 router.use(verifyToken);
 
@@ -52,5 +58,8 @@ router.post('/conversation-starters', aiController.generateConversationStarters)
  * @access  Private
  */
 router.get('/status', aiController.checkStatus);
+
+// route for AI chat
+router.post('/chat', aiController.aiChat);
 
 module.exports = router;
