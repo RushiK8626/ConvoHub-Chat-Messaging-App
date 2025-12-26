@@ -280,6 +280,22 @@
   border-bottom-right-radius: 4px;
 }
 
+/* Forwarded message indicator */
+.forwarded-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-color);
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.forwarded-indicator svg {
+  opacity: 0.7;
+}
+
 .message_received_reply_btn {
   background: transparent;
   justify-content: flex-end;

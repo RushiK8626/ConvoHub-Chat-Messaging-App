@@ -45,6 +45,7 @@ import SmartReplies from "../components/SmartReplies";
 import MessageTranslator from "../components/MessageTranslator";
 import ChatSummary from "../components/ChatSummary";
 import ConversationStarters from "../components/ConversationStarters";
+import MessageForward from "../components/MessageForward";
 import useContextMenu from "../hooks/useContextMenu";
 import { useToast } from "../hooks/useToast";
 import useResponsive from "../hooks/useResponsive";
@@ -157,7 +158,8 @@ const ChatWindow = ({
   const [selectedOwnMessage, setSelectedOwnMessage] = useState(false);
 
   const [replyToMessage, setReplyToMessage] = useState(null);
-
+  const [messageForwarding, setMessageForwarding] = useState(false);
+  const [forwardMessageId, setForwardMessageId] = useState(null);
   const messageRefs = useRef({});
   const searchInputRef = useRef(null);
 
@@ -667,6 +669,14 @@ const ChatWindow = ({
 
     // Listen for new messages
     const handleNewMessage = (message) => {
+      // Only handle messages for the current chat
+      const currentChatId = parseInt(chatId);
+      const messageChatId = parseInt(message.chat_id);
+      
+      if (messageChatId !== currentChatId) {
+        return;
+      }
+
       setMessages((prevMessages) => {
         // Check if this is a real message (has message_id that's a number, not temp)
         const isRealMessage =
@@ -1096,14 +1106,14 @@ const ChatWindow = ({
     if (messageToReply) {
       setReplyToMessage(messageToReply);
       messageContextMenu.closeMenu();
-      showSuccess("Reply mode activated");
     }
   };
 
   const handleForwardMessage = () => {
     if (selectedMessage) {
-      // TODO: Implement forward functionality
-      showSuccess("Forward mode activated");
+      setMessageForwarding(true);
+      setForwardMessageId(selectedMessage.message_id);
+      messageContextMenu.closeMenu();
     }
   };
 
@@ -1372,14 +1382,42 @@ const ChatWindow = ({
     // showSuccess('Search functionality - To be implemented');
   };
 
-  const handleClearChat = () => {
+  const handleClearChat = async () => {
     if (
       window.confirm(
-        "Are you sure you want to clear this chat? This action cannot be undone."
+        "Are you sure you want to clear this chat? This will delete all messages for you only. This action cannot be undone."
       )
     ) {
-      // TODO: Implement clear chat API call
-      showSuccess("Chat cleared successfully");
+      try {
+        const API_URL = (
+          process.env.REACT_APP_API_URL || "http://localhost:3001"
+        ).replace(/\/+$/, "");
+        const token = localStorage.getItem("accessToken");
+
+        const res = await fetch(
+          `${API_URL}/api/messages/chat/${chatId}/clear`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          // Clear messages from local state
+          setMessages([]);
+          showSuccess(`Chat cleared successfully (${data.deletedCount} messages)`);
+        } else {
+          const errorData = await res.json();
+          showError(errorData.error || "Failed to clear chat");
+        }
+      } catch (err) {
+        console.error("Error clearing chat:", err);
+        showError("Error clearing chat");
+      }
     }
   };
 
@@ -2013,6 +2051,58 @@ const ChatWindow = ({
     setMessageSelection(false);
   };
 
+  // Batch delete selected messages for self
+  const handleDeleteSelectedMessages = async () => {
+    const selectedIds = Object.keys(selectedMessages).filter(
+      (id) => selectedMessages[id]
+    ).map(id => parseInt(id));
+
+    if (selectedIds.length === 0) {
+      showError("No messages selected");
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Are you sure you want to delete ${selectedIds.length} selected message(s)? This will delete them for you only.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const API_URL = (
+        process.env.REACT_APP_API_URL || "http://localhost:3001"
+      ).replace(/\/+$/, "");
+      const token = localStorage.getItem("accessToken");
+
+      const res = await fetch(`${API_URL}/api/messages/batch`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message_ids: selectedIds }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Remove deleted messages from local state
+        setMessages((prevMessages) =>
+          prevMessages.filter((m) => !selectedIds.includes(m.message_id))
+        );
+        clearAllSelection();
+        showSuccess(`${data.deletedCount} message(s) deleted`);
+      } else {
+        const errorData = await res.json();
+        showError(errorData.error || "Failed to delete messages");
+      }
+    } catch (err) {
+      console.error("Error deleting messages:", err);
+      showError("Error deleting messages");
+    }
+  };
+
   const addEmoji = (emoji) => {
     setMessageText((prev) => prev + emoji.native); // insert emoji directly
   };
@@ -2026,9 +2116,16 @@ const ChatWindow = ({
         style={{ display: "none" }}
         onChange={handleFileChange}
       />
-
-      <div className="chat-window-header" ref={headerRef}>
-        {!isEmbedded && (
+      {messageForwarding && (
+        <MessageForward 
+          onClose={() => setMessageForwarding(false)} 
+          userId={userId}
+          messageId={forwardMessageId}
+          currentChatId={chatId}
+        />
+      )}
+          <div className="chat-window-header" ref={headerRef}>
+            {!isEmbedded && (
           <button className="back-btn" onClick={() => navigate("/chats")}>
             <ArrowLeft size={24} />
           </button>
@@ -2101,7 +2198,7 @@ const ChatWindow = ({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                setShowSearch(!showSearch);
+                handleDeleteSelectedMessages();
               }}
             >
               <Trash2 size={24} />
@@ -2112,7 +2209,7 @@ const ChatWindow = ({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                setShowSearch(!showSearch);
+                setMessageForwarding(true);
               }}
             >
               <Forward size={24} />
@@ -2149,27 +2246,7 @@ const ChatWindow = ({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-
-                // Get button position
-                const rect = e.currentTarget.getBoundingClientRect();
-                const menuWidth = 200;
-                const menuHeight = 300;
-
-                // Position menu aligned to the right edge of the button
-                let x = rect.right - menuWidth; // Align right edge of menu with right edge of button
-                let y = rect.bottom + 4; // 4px below the button
-
-                // Adjust x if menu would go off left edge
-                if (x < 8) {
-                  x = 8;
-                }
-
-                // Adjust y if menu would go off bottom
-                if (y + menuHeight > window.innerHeight) {
-                  y = rect.top - menuHeight - 4; // Position above button instead
-                }
-
-                headerContextMenu.setMenu({ isOpen: true, x, y });
+                headerContextMenu.setMenu({ isOpen: !headerContextMenu.isOpen, x: 0, y: 0, anchorEl: e.currentTarget });
               }}
             >
               <MoreVertical size={24} />
@@ -2362,6 +2439,12 @@ const ChatWindow = ({
                           )}
                         {message.message_text && (
                           <div className="message-bubble">
+                            {message.is_forward && (
+                              <div className="forwarded-indicator">
+                                <Forward size={12} />
+                                <span>Forwarded</span>
+                              </div>
+                            )}
                             {message.is_reply &&
                               message.referenced_message_id && (
                                 <div className="message-reply-reference">
@@ -2564,6 +2647,12 @@ const ChatWindow = ({
                         )}
                       {message.message_text && (
                         <div className="message-bubble">
+                          {message.is_forward && (
+                            <div className="forwarded-indicator">
+                              <Forward size={12} />
+                              <span>Forwarded</span>
+                            </div>
+                          )}
                           {isGroup && (
                             <div
                               className="message-sender clickable"
@@ -2957,19 +3046,21 @@ const ChatWindow = ({
                     setMessageText(reply);
                     setShowSmartReplies(false);
                   }}
+                  onClose={() => setShowSmartReplies(false)}
                   disabled={uploading}
                 />
               </div>
             )}
 
             {/* Conversation Starters - show when no messages */}
-            {messages.length === 0 && !loading && (
+            {messages.length === 0 && !loading && showConversationStarters && (
               <div className="conversation-starters-wrapper">
                 <ConversationStarters
                   chatId={chatId}
                   onSelectStarter={(starter) => {
                     setMessageText(starter);
                   }}
+                  onClose={() => setShowConversationStarters(false)}
                   disabled={uploading}
                 />
               </div>
@@ -3024,6 +3115,7 @@ const ChatWindow = ({
         isOpen={headerContextMenu.isOpen}
         x={headerContextMenu.x}
         y={headerContextMenu.y}
+        anchorEl={headerContextMenu.anchorEl}
         items={getHeaderMenuItems()}
         onClose={headerContextMenu.closeMenu}
       />
