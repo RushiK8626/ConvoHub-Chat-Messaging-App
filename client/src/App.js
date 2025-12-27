@@ -19,6 +19,7 @@ import UserProfile from "./pages/UserProfile";
 import Settings from "./pages/Settings";
 import Appearance from "./pages/Appearance";
 import BlockedUsers from "./pages/BlockedUsers";
+import PrivacySettings from "./pages/PrivacySettings";
 import "./App.css";
 import "./styles/theme.css";
 import NotificationSettings from "./pages/NotificationSettings";
@@ -89,6 +90,12 @@ function App() {
                 path="/notification-settings"
                 element={
                   hasToken ? <NotificationSettings /> : <Navigate to="/login" />
+                }
+              />
+              <Route
+                path="/privacy-settings"
+                element={
+                  hasToken ? <PrivacySettings /> : <Navigate to="/login" />
                 }
               />
               <Route
