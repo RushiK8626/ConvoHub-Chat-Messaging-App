@@ -78,16 +78,8 @@ const NotificationSettings = ({ isEmbedded = false }) => {
       />
       <div className="settings-section">
         <div className="setting-item">
+          <h2 className="section-title">Push Notifications</h2>
           <div className="notification-toggle">
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={isEnabled}
-                onChange={handleToggle}
-                disabled={isLoading}
-              />
-              <span className="toggle-slider"></span>
-            </label>
             <div className="toggle-label">
               <span className="toggle-status">
                 {isEnabled ? "Enabled" : "Disabled"}
@@ -98,6 +90,15 @@ const NotificationSettings = ({ isEmbedded = false }) => {
                   : "You will not receive push notifications"}
               </span>
             </div>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={isEnabled}
+                onChange={handleToggle}
+                disabled={isLoading}
+              />
+              <span className="toggle-slider"></span>
+            </label>
           </div>
           {error && <div className="error-message">{error}</div>}
         </div>

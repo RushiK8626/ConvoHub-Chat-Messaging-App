@@ -1,22 +1,8 @@
 /* Notification Settings Styles */
 .notification-settings {
-  max-width: 95%;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0;
-}
-
-@media (max-width: 600px) {
-  .notification-settings {
-    max-width: 100%;
-    margin: auto;
-  }
-}
-
-@media (min-width: 600px) {
-  .appearance-page {
-    max-width: 95%;
-    margin: auto;
-  }
 }
 
 .settings-section {
@@ -81,6 +67,7 @@
   transition: background-color 0.2s ease;
   background: var(--background-color);
   margin: 0;
+  gap: 1rem;
 }
 
 .setting-item:last-child {
@@ -93,50 +80,9 @@
 
 .setting-content {
   flex: 1;
-}
-
-/* Toggle Switch */
-.setting-toggle {
   display: flex;
   align-items: center;
-  cursor: pointer;
-  user-select: none;
-  margin-bottom: 8px;
-}
-
-.setting-toggle input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--accent-color);
-  margin-right: 12px;
-}
-
-.setting-toggle input[type="checkbox"]:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.toggle-label {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--text-color);
-}
-
-/* Description */
-.description {
-  margin: 8px 0 0 30px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.4;
-}
-
-.description.enabled {
-  color: #28a745;
-}
-
-.description.disabled {
-  color: #dc3545;
+  gap: 1rem;
 }
 
 /* Loading Spinner */
@@ -173,29 +119,7 @@
   line-height: 1.5;
 }
 
-/* Responsive Design */
-@media (max-width: 600px) {
-  .settings-section {
-    padding: 0;
-  }
-
-  .setting-item {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .loading-spinner {
-    margin-top: 12px;
-  }
-}
-
-.notification-toggle {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-}
-
+/* Toggle Switch */
 .toggle-switch {
   position: relative;
   display: inline-block;
@@ -248,18 +172,16 @@
   cursor: not-allowed;
 }
 
-.toggle-switch input:disabled ~ * {
-  cursor: not-allowed;
-}
-
 .toggle-switch input:focus + .toggle-slider {
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
 }
 
+/* Toggle Label */
 .toggle-label {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  flex: 1;
 }
 
 .toggle-status {
@@ -271,4 +193,35 @@
 .toggle-description {
   font-size: 0.875rem;
   color: #666;
+}
+
+/* Notification Toggle Container */
+.notification-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .settings-section {
+    padding: 0;
+  }
+
+  .setting-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .loading-spinner {
+    margin-top: 12px;
+  }
+
+  .notification-toggle {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
 }
