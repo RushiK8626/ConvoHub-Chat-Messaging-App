@@ -16,6 +16,7 @@ router.get('/chat/:chatId/recent', messageController.getRecentMessages); // Fast
 router.get('/chat/:chatId', messageController.getMessagesByChat); // Paginated (older messages)
 router.put('/chat/:chatId/read-all/:userId', messageController.markAllMessagesAsRead);
 
+
 router.get('/unread/:userId', messageController.getUnreadMessageCount);
 
 // Delete routes

@@ -842,6 +842,139 @@ const initializeSocket = (io) => {
       }
     });
 
+    // ========== UPDATE MESSAGE HANDLER ==========
+    // Handle message editing (sender only, within 2 hours)
+    socket.on('update_message', async (messageData) => {
+      try {
+        const { message_id, message_text } = messageData;
+        const sender_id = userId;
+
+        // Validation
+        if (!message_id) {
+          socket.emit('update_error', { error: 'message_id is required' });
+          return;
+        }
+
+        if (!message_text || message_text.trim() === '') {
+          socket.emit('update_error', { error: 'message_text is required and cannot be empty' });
+          return;
+        }
+
+        const messageId = parseInt(message_id);
+
+        // Validate message_id format
+        if (isNaN(messageId)) {
+          socket.emit('update_error', { error: 'Invalid message_id' });
+          return;
+        }
+
+        // Fetch the message
+        const message = await prisma.message.findUnique({
+          where: { message_id: messageId },
+          include: {
+            sender: {
+              select: {
+                user_id: true,
+                username: true,
+                full_name: true
+              }
+            }
+          }
+        });
+
+        if (!message) {
+          socket.emit('update_error', { error: 'Message not found' });
+          return;
+        }
+
+        // Check if user is the sender
+        if (message.sender_id !== sender_id) {
+          socket.emit('update_error', { error: 'Only the sender can edit this message' });
+          return;
+        }
+
+        // Check if message is within 2 hours edit window
+        const createdAt = new Date(message.created_at);
+        const now = new Date();
+        const timeDiffInHours = (now - createdAt) / (1000 * 60 * 60);
+
+        if (timeDiffInHours > 2) {
+          socket.emit('update_error', { 
+            error: 'Messages can only be edited within 2 hours of sending',
+            messageSentAt: createdAt,
+            editWindowExpiredAt: new Date(createdAt.getTime() + 2 * 60 * 60 * 1000),
+            timeSinceSent: `${timeDiffInHours.toFixed(2)} hours`
+          });
+          return;
+        }
+
+        // Update the message
+        const updatedMessage = await prisma.message.update({
+          where: { message_id: messageId },
+          data: {
+            message_text: message_text.trim(),
+            updated_at: new Date(),
+            updated: true
+          },
+          include: {
+            sender: {
+              select: {
+                user_id: true,
+                username: true,
+                full_name: true,
+                profile_pic: true
+              }
+            },
+            chat: {
+              select: {
+                chat_id: true,
+                chat_name: true,
+                chat_type: true
+              }
+            },
+            status: {
+              select: {
+                user_id: true,
+                status: true,
+                updated_at: true
+              }
+            },
+            attachments: {
+              select: {
+                attachment_id: true,
+                file_url: true,
+                original_filename: true,
+                file_type: true,
+                file_size: true
+              }
+            }
+          }
+        });
+
+        // Broadcast updated message to all users in the chat
+        io.to(`chat_${message.chat_id}`).emit('message_updated', {
+          message_id: updatedMessage.message_id,
+          message_text: updatedMessage.message_text,
+          updated_at: updatedMessage.updated_at,
+          updated: updatedMessage.updated,
+          sender: updatedMessage.sender
+        });
+
+        // Send confirmation to sender
+        socket.emit('message_update_success', {
+          message_id: updatedMessage.message_id,
+          data: updatedMessage
+        });
+
+      } catch (error) {
+        console.error('Error in update_message:', error);
+        socket.emit('update_error', { 
+          error: 'Failed to update message',
+          details: error.message 
+        });
+      }
+    });
+
     // ========== DELETE MESSAGE HANDLER ==========
     // Handle message deletion for all members (sender or admin only)
     socket.on('delete_message_for_all', async (data) => {

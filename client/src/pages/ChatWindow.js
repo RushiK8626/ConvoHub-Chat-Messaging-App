@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { Scrollbar } from "react-scrollbars-custom";
 import SimpleBar from "simplebar-react";
 import "simplebar-react/dist/simplebar.min.css";
 import {
@@ -31,6 +30,7 @@ import {
   Languages,
   FileText,
   Sparkles,
+  Edit,
 } from "lucide-react";
 import ChatInfoModal from "../components/ChatInfoModal";
 import UpdateGroupInfoModal from "../components/UpdateGroupInfoModal";
@@ -164,6 +164,10 @@ const ChatWindow = ({
   const searchInputRef = useRef(null);
 
   const [showEmoji, setShowEmoji] = useState(false);
+
+  const [messageEditing, setMessageEditing] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editingMessage, setEditingMessage] = useState('');
 
   // Calculate messages container height dynamically
   useEffect(() => {
@@ -318,8 +322,7 @@ const ChatWindow = ({
     try {
       const token = localStorage.getItem("accessToken");
       const res = await fetch(
-        `${
-          process.env.REACT_APP_API_URL || "http://localhost:3001"
+        `${process.env.REACT_APP_API_URL || "http://localhost:3001"
         }/api/users/public/id/${senderId}`,
         {
           headers: {
@@ -336,9 +339,8 @@ const ChatWindow = ({
         if (userData.profile_pic) {
           // Extract filename from path like /uploads/25002-xxx.jpg
           const filename = userData.profile_pic.split("/uploads/").pop();
-          userData.profile_pic = `${
-            process.env.REACT_APP_API_URL || "http://localhost:3001"
-          }/uploads/profiles/${filename}`;
+          userData.profile_pic = `${process.env.REACT_APP_API_URL || "http://localhost:3001"
+            }/uploads/profiles/${filename}`;
         }
 
         setUserProfiles((prev) => ({
@@ -358,8 +360,7 @@ const ChatWindow = ({
       const token = localStorage.getItem("accessToken");
       const filename = imagePath.split("/uploads/").pop();
       const res = await fetch(
-        `${
-          process.env.REACT_APP_API_URL || "http://localhost:3001"
+        `${process.env.REACT_APP_API_URL || "http://localhost:3001"
         }/uploads/chat-images/${filename}`,
         {
           headers: {
@@ -431,8 +432,7 @@ const ChatWindow = ({
 
         // Fetch chat info
         const chatRes = await fetch(
-          `${
-            process.env.REACT_APP_API_URL || "http://localhost:3001"
+          `${process.env.REACT_APP_API_URL || "http://localhost:3001"
           }/api/chats/${chatId}`,
           {
             headers: {
@@ -517,8 +517,7 @@ const ChatWindow = ({
 
         // Fetch messages with proper userId parameter
         const res = await fetch(
-          `${
-            process.env.REACT_APP_API_URL || "http://localhost:3001"
+          `${process.env.REACT_APP_API_URL || "http://localhost:3001"
           }/api/messages/chat/${chatId}?userId=${encodeURIComponent(
             String(userId)
           )}`,
@@ -672,7 +671,7 @@ const ChatWindow = ({
       // Only handle messages for the current chat
       const currentChatId = parseInt(chatId);
       const messageChatId = parseInt(message.chat_id);
-      
+
       if (messageChatId !== currentChatId) {
         return;
       }
@@ -804,32 +803,32 @@ const ChatWindow = ({
     // Listen for file upload success from server
     const handleFileUploadSuccess = (messageData) => {
       const { tempId } = messageData;
-      
+
       // Clear uploading state for this message
       if (tempId) {
         setUploadingMessages(prev => {
           const newState = { ...prev };
           delete newState[tempId];
-          
+
           // Reset global upload state if no more uploads pending
           if (Object.keys(newState).length === 0) {
             setUploading(false);
             setUploadProgress(0);
           }
-          
+
           return newState;
         });
-        
+
         // Update the optimistic message to mark it as no longer uploading
-        setMessages(prevMessages => 
-          prevMessages.map(msg => 
-            msg.tempId === tempId 
+        setMessages(prevMessages =>
+          prevMessages.map(msg =>
+            msg.tempId === tempId
               ? { ...msg, isUploading: false }
               : msg
           )
         );
       }
-      
+
       // Show success toast
       showSuccess("File uploaded successfully!");
     };
@@ -849,6 +848,22 @@ const ChatWindow = ({
       });
     };
 
+    // Listen for message update events
+    const handleMessageUpdated = (data) => {
+      setMessages((prevMessages) =>
+        prevMessages.map((m) =>
+          m.message_id === data.message_id
+            ? {
+                ...m,
+                message_text: data.message_text,
+                updated_at: data.updated_at,
+                updated: data.updated,
+              }
+            : m
+        )
+      );
+    };
+
     // Listen for message deletion events
     const handleMessageDeletedForAllUsers = (data) => {
       setMessages((prevMessages) =>
@@ -865,6 +880,13 @@ const ChatWindow = ({
     const handleDeleteError = (data) => {
       console.error("❌ Delete error:", data);
       showError(data.error || "Failed to delete message");
+    };
+
+    const handleUpdateError = (data) => {
+      console.error("❌ Update error:", data);
+      showError(data.error || "Failed to update message");
+      setMessageEditing(false);
+      setEditingMessageId(null);
     };
 
     // Handle member added to group
@@ -964,9 +986,11 @@ const ChatWindow = ({
     socket.on("file_upload_progress_update", handleFileUploadProgress);
     socket.on("file_upload_success", handleFileUploadSuccess);
     socket.on("message_status_updated", handleMessageStatusUpdated);
+    socket.on("message_updated", handleMessageUpdated);
     socket.on("message_deleted_for_all", handleMessageDeletedForAllUsers);
     socket.on("delete_success", handleDeleteSuccess);
     socket.on("delete_error", handleDeleteError);
+    socket.on("update_error", handleUpdateError);
     socket.on("member_added", handleMemberAdded);
     socket.on("member_removed", handleMemberAdded);
     socket.on("member_exited", handleMemberExited);
@@ -989,9 +1013,11 @@ const ChatWindow = ({
         socket.off("file_upload_progress_update", handleFileUploadProgress);
         socket.off("file_upload_success", handleFileUploadSuccess);
         socket.off("message_status_updated", handleMessageStatusUpdated);
+        socket.off("message_updated", handleMessageUpdated);
         socket.off("message_deleted_for_all", handleMessageDeletedForAllUsers);
         socket.off("delete_success", handleDeleteSuccess);
         socket.off("delete_error", handleDeleteError);
+        socket.off("update_error", handleUpdateError);
         socket.off("member_added", handleMemberAdded);
         socket.off("member_removed", handleMemberAdded);
         socket.off("member_exited", handleMemberExited);
@@ -1010,7 +1036,7 @@ const ChatWindow = ({
     requestAnimationFrame(() => {
       // Try to get SimpleBar's scrollable element
       const scrollableElement = simpleBarRef.current?.getScrollElement?.();
-      
+
       if (scrollableElement) {
         // Scroll to the absolute bottom of the container
         scrollableElement.scrollTop = scrollableElement.scrollHeight;
@@ -1018,7 +1044,7 @@ const ChatWindow = ({
         // Fallback to scrollIntoView
         messagesEndRef.current.scrollIntoView({ behavior: "auto", block: "end" });
       }
-      
+
       // Double-check after a short delay for any lazy-loaded content
       setTimeout(() => {
         const el = simpleBarRef.current?.getScrollElement?.();
@@ -1081,6 +1107,37 @@ const ChatWindow = ({
     setReplyToMessage(null);
   };
 
+  const handleSendEditedMessage = async() => {
+    if (!messageText.trim()) return;
+
+    const updatedText = messageText.trim();
+
+    // Send message edit via Socket.IO
+    const messageData = {
+      message_id: editingMessageId,
+      message_text: updatedText
+    };
+
+    socketService.updateMessage(messageData);
+
+    // Reset editing state
+    setMessageEditing(false);
+    setEditingMessageId(null);
+    setMessageText("");
+    setEditingMessage("");
+  }
+
+  const handleEditMessage = async() => {
+    const messageIndex = messages.findIndex(m => m.message_id === selectedMessage.message_id);
+    messageContextMenu.closeMenu();
+    if (messageIndex === -1) return;
+
+    setMessageEditing(true);
+    setEditingMessage(selectedMessage.message_text);
+    setMessageText(selectedMessage.message_text);
+    setEditingMessageId(selectedMessage.message_id);
+  }
+
   // Handle typing indicator
   const handleTyping = useCallback(() => {
     if (!socketService.isSocketConnected()) {
@@ -1120,7 +1177,6 @@ const ChatWindow = ({
   const handleCopyMessage = () => {
     if (selectedMessage?.message_text) {
       navigator.clipboard.writeText(selectedMessage.message_text);
-      showSuccess("Message copied to clipboard");
     }
   };
 
@@ -1190,19 +1246,19 @@ const ChatWindow = ({
   // Handle inline translation of a message
   const handleTranslateMessage = async (message, targetLanguage) => {
     if (!message?.message_text) return;
-    
+
     const messageId = message.message_id;
-    
+
     // Set loading state
     setMessageTranslations(prev => ({
       ...prev,
       [messageId]: { text: '', lang: targetLanguage, loading: true }
     }));
-    
+
     try {
       const result = await translateText(message.message_text, targetLanguage);
       const translatedText = result.translatedText || result.translated_text || '';
-      
+
       setMessageTranslations(prev => ({
         ...prev,
         [messageId]: { text: translatedText, lang: targetLanguage, loading: false }
@@ -1238,7 +1294,7 @@ const ChatWindow = ({
     const isOwn = message?.sender_id === userId;
     const hasTranslation = messageTranslations[message?.message_id];
     const defaultLang = getDefaultTranslationLanguage();
-    
+
     const items = [
       {
         id: "select",
@@ -1255,6 +1311,15 @@ const ChatWindow = ({
       },
     ];
 
+    if (isOwn && isWithinTwoHours(message.created_at) ) {
+      items.push({
+        id: "edit",
+        label: "Edit",
+        icon: <Edit size={16} />,
+        onClick: handleEditMessage,
+      })
+    }
+
     // Add translation options based on whether message already has translation
     if (hasTranslation) {
       items.push({
@@ -1269,6 +1334,7 @@ const ChatWindow = ({
     } else {
       items.push({
         id: "translate-default",
+        
         label: `Translate (${defaultLang.toUpperCase()})`,
         icon: <Languages size={16} />,
         onClick: () => {
@@ -1323,6 +1389,7 @@ const ChatWindow = ({
         onClick: handleDeleteMessageForAll,
       });
     }
+    
 
     return items;
   };
@@ -1375,11 +1442,6 @@ const ChatWindow = ({
     }
 
     messageContextMenu.setMenu({ isOpen: true, x, y });
-  };
-
-  // Header context menu handlers
-  const handleSearchChat = () => {
-    // showSuccess('Search functionality - To be implemented');
   };
 
   const handleClearChat = async () => {
@@ -1629,8 +1691,7 @@ const ChatWindow = ({
 
       if (addMemberRes.ok) {
         showSuccess(
-          `${
-            selectedUserToAdd.full_name || selectedUserToAdd.username
+          `${selectedUserToAdd.full_name || selectedUserToAdd.username
           } added to group`
         );
         // Close modal and clear search
@@ -1677,8 +1738,7 @@ const ChatWindow = ({
       try {
         const token = localStorage.getItem("accessToken");
         const response = await fetch(
-          `${
-            process.env.REACT_APP_API_URL || "http://localhost:3001"
+          `${process.env.REACT_APP_API_URL || "http://localhost:3001"
           }/api/chats/${chatId}/members/${userId}`,
           {
             method: "DELETE",
@@ -1737,7 +1797,7 @@ const ChatWindow = ({
         icon: <UserCheck size={16} />,
         onClick: handleViewContactOrGroupInfo,
       });
-      
+
       // Show Block or Unblock based on current status
       if (isBlocked && !isBlockedByOther) {
         // User has blocked the other person - show unblock option
@@ -2107,6 +2167,17 @@ const ChatWindow = ({
     setMessageText((prev) => prev + emoji.native); // insert emoji directly
   };
 
+  const isWithinTwoHours = (timestamp) => {
+    const now = Date.now();               // current time in ms
+    const past = new Date(timestamp).getTime(); // given timestamp in ms
+
+    const diffMs = now - past;
+    const TWO_HOURS = 2 * 60 * 60 * 1000; // 2 hours in ms
+
+    return diffMs < TWO_HOURS;
+  };
+
+
   return (
     <div className="chat-window">
       {/* Hidden file input */}
@@ -2117,15 +2188,15 @@ const ChatWindow = ({
         onChange={handleFileChange}
       />
       {messageForwarding && (
-        <MessageForward 
-          onClose={() => setMessageForwarding(false)} 
+        <MessageForward
+          onClose={() => setMessageForwarding(false)}
           userId={userId}
           messageId={forwardMessageId}
           currentChatId={chatId}
         />
       )}
-          <div className="chat-window-header" ref={headerRef}>
-            {!isEmbedded && (
+      <div className="chat-window-header" ref={headerRef}>
+        {!isEmbedded && (
           <button className="back-btn" onClick={() => navigate("/chats")}>
             <ArrowLeft size={24} />
           </button>
@@ -2136,7 +2207,7 @@ const ChatWindow = ({
           style={{ cursor: "pointer" }}
         >
           {chatInfo.otherUserId &&
-          userProfiles[chatInfo.otherUserId]?.profile_pic ? (
+            userProfiles[chatInfo.otherUserId]?.profile_pic ? (
             <div className="chat-avatar-small" style={{ position: "relative" }}>
               <img
                 src={userProfiles[chatInfo.otherUserId].profile_pic}
@@ -2184,8 +2255,8 @@ const ChatWindow = ({
                 {chatInfo.is_online
                   ? "Online"
                   : chatInfo.last_seen
-                  ? `Last seen ${formatLastSeen(chatInfo.last_seen)}`
-                  : "Offline"}
+                    ? `Last seen ${formatLastSeen(chatInfo.last_seen)}`
+                    : "Offline"}
               </span>
             )}
           </div>
@@ -2366,13 +2437,11 @@ const ChatWindow = ({
                   <>
                     <div
                       key={message.message_id}
-                      className={`message message-sent ${
-                        isCurrentResult(message.message_id)
+                      className={`message message-sent ${isCurrentResult(message.message_id)
                           ? "search-result-current"
                           : ""
-                      } ${
-                        selectedMessages[message.message_id] ? "selection" : ""
-                      }`}
+                        } ${selectedMessages[message.message_id] ? "selection" : ""
+                        }`}
                       style={{
                         display: "flex",
                         justifyContent: "flex-end",
@@ -2485,9 +2554,9 @@ const ChatWindow = ({
                             <p className="message-text">
                               {showSearch && searchQuery
                                 ? highlightText(
-                                    message.message_text,
-                                    searchQuery
-                                  )
+                                  message.message_text,
+                                  searchQuery
+                                )
                                 : message.message_text}
                             </p>
                             {/* Inline Translation */}
@@ -2503,7 +2572,7 @@ const ChatWindow = ({
                                     <div className="translation-header">
                                       <Languages size={12} />
                                       <span>Translated to {messageTranslations[message.message_id].lang.toUpperCase()}</span>
-                                      <button 
+                                      <button
                                         className="show-original-btn"
                                         onClick={(e) => {
                                           e.stopPropagation();
@@ -2522,7 +2591,7 @@ const ChatWindow = ({
                             )}
                             <div className="message-meta">
                               <span className="message-time">
-                                {formatMessageTime(message.created_at)}
+                                {message.updated ? `Edited at ${formatMessageTime(message.updated_at)}` : formatMessageTime(message.created_at)}
                               </span>
                               <MessageStatusIndicator
                                 messageId={message.message_id}
@@ -2557,13 +2626,11 @@ const ChatWindow = ({
                 <>
                   <div
                     key={message.message_id}
-                    className={`message message-received ${
-                      isCurrentResult(message.message_id)
+                    className={`message message-received ${isCurrentResult(message.message_id)
                         ? "search-result-current"
                         : ""
-                    } ${
-                      selectedMessages[message.message_id] ? "selection" : ""
-                    }`}
+                      } ${selectedMessages[message.message_id] ? "selection" : ""
+                      }`}
                     style={{
                       display: "flex",
                       alignItems: "flex-start",
@@ -2591,13 +2658,13 @@ const ChatWindow = ({
                       <img
                         src={
                           message.sender_id &&
-                          userProfiles[message.sender_id]?.profile_pic
+                            userProfiles[message.sender_id]?.profile_pic
                             ? userProfiles[message.sender_id].profile_pic
                             : message.sender?.profile_picture_url ||
-                              "https://ui-avatars.com/api/?name=" +
-                                (message.sender?.full_name ||
-                                  message.sender?.username ||
-                                  "User")
+                            "https://ui-avatars.com/api/?name=" +
+                            (message.sender?.full_name ||
+                              message.sender?.username ||
+                              "User")
                         }
                         alt="profile"
                         className="message-avatar"
@@ -2668,11 +2735,11 @@ const ChatWindow = ({
                               }}
                             >
                               {message.sender_id &&
-                              userProfiles[message.sender_id]?.full_name
+                                userProfiles[message.sender_id]?.full_name
                                 ? userProfiles[message.sender_id].full_name
                                 : message.sender?.full_name ||
-                                  message.sender?.username ||
-                                  "Unknown User"}
+                                message.sender?.username ||
+                                "Unknown User"}
                             </div>
                           )}
                           {message.is_reply &&
@@ -2730,7 +2797,7 @@ const ChatWindow = ({
                                   <div className="translation-header">
                                     <Languages size={12} />
                                     <span>Translated to {messageTranslations[message.message_id].lang.toUpperCase()}</span>
-                                    <button 
+                                    <button
                                       className="show-original-btn"
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -2749,7 +2816,7 @@ const ChatWindow = ({
                           )}
                           <div className="message-meta">
                             <span className="message-time">
-                              {formatMessageTime(message.created_at)}
+                              {message.updated ? `Edited at ${formatMessageTime(message.updated_at)}` : formatMessageTime(message.created_at)}
                             </span>
                           </div>
                         </div>
@@ -2773,11 +2840,11 @@ const ChatWindow = ({
                                 }}
                               >
                                 {message.sender_id &&
-                                userProfiles[message.sender_id]?.full_name
+                                  userProfiles[message.sender_id]?.full_name
                                   ? userProfiles[message.sender_id].full_name
                                   : message.sender?.full_name ||
-                                    message.sender?.username ||
-                                    "Unknown User"}
+                                  message.sender?.username ||
+                                  "Unknown User"}
                               </div>
                             )}
                             <div className="message-meta">
@@ -2797,10 +2864,6 @@ const ChatWindow = ({
                       <Reply size={16} />
                     </button>
                   </div>
-
-                  {/* <button className='message_received_reply_btn'>
-                <Reply size={16} />
-              </button> */}
                 </>
               );
             })
@@ -2958,14 +3021,38 @@ const ChatWindow = ({
               </div>
             )}
 
+            {/* Edit Mode Indicator */}
+            {messageEditing && (
+              <div className="edit-indicator">
+                <div className="edit-label">
+                  <Edit size={16} className="edit-icon" />
+                  <span>Editing message</span>
+                </div>
+                <button className="cancel-edit" onClick={() => {
+                  setMessageEditing(false);
+                  setEditingMessageId(null);
+                  setEditingMessage('');
+                  setMessageText('');
+                }} title="Cancel editing">
+                  ✕
+                </button>
+              </div>
+            )}
+            
+
             {/* Message Input */}
             <form
               onSubmit={(e) => {
-                e.preventDefault();
-                if (selectedFile) {
-                  handleSendWithAttachment();
-                } else {
-                  handleSendMessage(e);
+                if(messageEditing) {
+                  handleSendEditedMessage();
+                }
+                else {
+                  e.preventDefault();
+                  if (selectedFile) {
+                    handleSendWithAttachment();
+                  } else {
+                    handleSendMessage(e);
+                  }
                 }
               }}
               className="message-input-form"
@@ -2974,7 +3061,7 @@ const ChatWindow = ({
                 type="button"
                 className="attach-btn"
                 onClick={() => setShowAttachMenu(!showAttachMenu)}
-                disabled={uploading || selectedFile !== null}
+                disabled={uploading || selectedFile !== null || messageEditing}
                 title={
                   selectedFile
                     ? "Remove file first to select another"
@@ -3026,7 +3113,7 @@ const ChatWindow = ({
               <button
                 type="submit"
                 className="send-btn"
-                disabled={uploading || (!messageText.trim() && !selectedFile)}
+                disabled={uploading || (!messageText.trim() && !selectedFile) || (messageText === editingMessage)}
               >
                 <Send size={22} />
               </button>
@@ -3176,11 +3263,11 @@ const ChatWindow = ({
                           {user.full_name
                             ? user.full_name.split(" ").length >= 2
                               ? (
-                                  user.full_name.split(" ")[0][0] +
-                                  user.full_name.split(" ")[
-                                    user.full_name.split(" ").length - 1
-                                  ][0]
-                                ).toUpperCase()
+                                user.full_name.split(" ")[0][0] +
+                                user.full_name.split(" ")[
+                                user.full_name.split(" ").length - 1
+                                ][0]
+                              ).toUpperCase()
                               : user.full_name.substring(0, 2).toUpperCase()
                             : user.username.substring(0, 2).toUpperCase()}
                         </span>
@@ -3206,9 +3293,8 @@ const ChatWindow = ({
       <ConfirmationBox
         isOpen={showAddMemberConfirmation}
         title="Add Member"
-        message={`Add ${
-          selectedUserToAdd?.full_name || selectedUserToAdd?.username
-        } to this group?`}
+        message={`Add ${selectedUserToAdd?.full_name || selectedUserToAdd?.username
+          } to this group?`}
         confirmText="Add"
         cancelText="Cancel"
         isLoading={isAddingMember}

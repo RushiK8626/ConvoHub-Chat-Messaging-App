@@ -391,6 +391,20 @@ class SocketService {
     }
   }
 
+  // Update/edit message
+  updateMessage(messageData) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit("update_message", {
+        message_id: messageData.message_id,
+        message_text: messageData.message_text
+      });
+    } else {
+      console.warn(
+        "[SOCKET ERROR] Cannot update message - socket not connected"
+      );
+    }
+  }
+
   // Remove specific event listener
   off(event, callback) {
     if (this.socket) {
