@@ -11,12 +11,16 @@ const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_T
 // Initialize email transporter
 const emailTransporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false,
+  port: parseInt(process.env.EMAIL_PORT) || 587,
+  secure: process.env.EMAIL_PORT === '465', 
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD
-  }
+  },
+  // Timeout settings
+  connectionTimeout: 10000, 
+  greetingTimeout: 10000,
+  socketTimeout: 15000
 });
 
 // Generate random OTP
