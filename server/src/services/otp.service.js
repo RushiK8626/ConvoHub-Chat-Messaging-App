@@ -74,16 +74,6 @@ exports.createOTP = async (userId, otpType = 'login', txClient = null) => {
 // Send OTP via Email
 exports.sendOTPEmail = async (email, otpCode, otpType) => {
   try {
-    const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
-      }
-    });
-
     let subject, message;
 
     if (otpType === 'register') {
@@ -100,7 +90,8 @@ exports.sendOTPEmail = async (email, otpCode, otpType) => {
       message = `Your ConvoHub verification code is:`;
     }
 
-    await transporter.sendMail({
+    // Use the global email transporter
+    await emailTransporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
       subject: subject,
