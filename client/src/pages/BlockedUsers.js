@@ -5,14 +5,23 @@ import PageHeader from "../components/PageHeader";
 import { getBlockedUsers, unblockUser } from "../utils/blockingService";
 import { useToast } from "../hooks/useToast";
 import ToastContainer from "../components/ToastContainer";
+import useResponsive from "../hooks/useResponsive";
 import "./BlockedUsers.css";
 
-const BlockedUsers = () => {
+const BlockedUsers = ({ isEmbedded = false }) => {
   const navigate = useNavigate();
+  const isWideScreen = useResponsive();
   const { toasts, showError, showSuccess, removeToast } = useToast();
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unblockingUserId, setUnblockingUserId] = useState(null);
+
+  // Handle responsive layout changes - navigate to settings page when screen becomes wide
+  useEffect(() => {
+    if (!isEmbedded && isWideScreen) {
+      navigate("/settings", { state: { selectedSettingId: "blocked-users" } });
+    }
+  }, [isWideScreen, isEmbedded, navigate]);
 
   // Fetch blocked users on component mount
   useEffect(() => {
@@ -52,7 +61,9 @@ const BlockedUsers = () => {
 
   return (
     <div className="blocked-users-page">
-      <PageHeader title="Blocked Users" onBack={() => navigate("/settings")} />
+      {!isEmbedded && (
+        <PageHeader title="Blocked Users" onBack={() => navigate("/settings")} />
+      )}
 
       <div className="blocked-users-content">
         {loading ? (

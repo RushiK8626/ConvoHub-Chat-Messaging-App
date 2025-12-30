@@ -5,17 +5,26 @@ import BottomTabBar from "../components/BottomTabBar";
 import PageHeader from "../components/PageHeader";
 import ToastContainer from "../components/ToastContainer";
 import { useToast } from "../hooks/useToast";
+import useResponsive from "../hooks/useResponsive";
 import "./Profile.css";
 
-const Profile = () => {
+const Profile = ({ isEmbedded: isEmbeddedProp = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isEmbedded = location.state?.isEmbedded || false;
+  const isWideScreen = useResponsive();
+  const isEmbedded = isEmbeddedProp || location.state?.isEmbedded || false;
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const fileInputRef = React.useRef(null);
   const { toasts, showSuccess, showError, removeToast } = useToast();
+
+  // Handle responsive layout changes - navigate to settings page when screen becomes wide
+  useEffect(() => {
+    if (!isEmbedded && isWideScreen) {
+      navigate("/settings", { state: { selectedSettingId: "profile" } });
+    }
+  }, [isWideScreen, isEmbedded, navigate]);
 
   // Get userId from localStorage
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -198,7 +207,7 @@ const Profile = () => {
     // Upload the file
     try {
       const formData = new FormData();
-      formData.append("profilePic", file); // ✅ Changed from 'profile_pic'
+      formData.append("profilePic", file); 
 
       const token = localStorage.getItem("accessToken");
       const response = await fetch(
@@ -206,7 +215,6 @@ const Profile = () => {
           (process.env.REACT_APP_API_URL || "http://localhost:3001").replace(/\/+$/, "")
         }/uploads/profile-pic`,
         {
-          // ✅ Changed from '/upload/'
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,

@@ -3,10 +3,19 @@ import { useNotifications } from "../hooks/useNotifications";
 import "./PrivacySettings.css";
 import PageHeader from "../components/PageHeader";
 import { useNavigate, useLocation } from "react-router-dom";
+import useResponsive from "../hooks/useResponsive";
 
 const PrivacySettings = ({ isEmbedded = false }) => {
     const navigate = useNavigate();
+    const isWideScreen = useResponsive();
     const [error, setError] = useState(null);
+
+    // Handle responsive layout changes - navigate to settings page when screen becomes wide
+    useEffect(() => {
+        if (!isEmbedded && isWideScreen) {
+            navigate("/settings", { state: { selectedSettingId: "privacy" } });
+        }
+    }, [isWideScreen, isEmbedded, navigate]);
 
     // Get userId and token from localStorage for this page
     const user = JSON.parse(localStorage.getItem("user") || "{}");

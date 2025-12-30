@@ -3,10 +3,19 @@ import { useNotifications } from "../hooks/useNotifications";
 import "./NotificationSettings.css";
 import PageHeader from "../components/PageHeader";
 import { useNavigate, useLocation } from "react-router-dom";
+import useResponsive from "../hooks/useResponsive";
 
 const NotificationSettings = ({ isEmbedded = false }) => {
   const navigate = useNavigate();
+  const isWideScreen = useResponsive();
   const [error, setError] = useState(null);
+
+  // Handle responsive layout changes - navigate to settings page when screen becomes wide
+  useEffect(() => {
+    if (!isEmbedded && isWideScreen) {
+      navigate("/settings", { state: { selectedSettingId: "notifications" } });
+    }
+  }, [isWideScreen, isEmbedded, navigate]);
 
   // Get userId and token from localStorage for this page
   const user = JSON.parse(localStorage.getItem("user") || "{}");

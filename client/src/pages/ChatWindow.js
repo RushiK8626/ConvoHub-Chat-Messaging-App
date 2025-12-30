@@ -80,6 +80,7 @@ const ChatWindow = ({
   const headerRef = useRef(null);
   const inputContainerRef = useRef(null);
   const smartRepliesRef = useRef(null);
+  const observerTimeoutRef = useRef(null); // For debouncing observer callbacks
   const [messagesHeight, setMessagesHeight] = useState("calc(100vh - 200px)");
   const [messageText, setMessageText] = useState("");
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -118,6 +119,7 @@ const ChatWindow = ({
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isScrolling, setIsScrolling] = useState(false); // Hide messages while scrolling
   const [userProfiles, setUserProfiles] = useState({});
   const [isBlocked, setIsBlocked] = useState(false);
   const [isBlockedByOther, setIsBlockedByOther] = useState(false);
@@ -410,7 +412,6 @@ const ChatWindow = ({
       typeof window !== "undefined" &&
       window.innerWidth >= 900
     ) {
-      // Navigate back to chat home with this chat selected (will open in split layout)
       navigate("/chats", { state: { selectedChatId: chatId } });
     }
   }, [isWideScreen, isEmbedded, chatId, navigate]);
@@ -531,6 +532,8 @@ const ChatWindow = ({
         if (!res.ok) throw new Error("Failed to fetch messages");
         const data = await res.json();
 
+        // Hide messages during initial scroll
+        setIsScrolling(true);
         setMessages(data.messages || []);
 
         // Parse message statuses from the API response
@@ -1026,14 +1029,13 @@ const ChatWindow = ({
     // eslint-disable-next-line
   }, [chatId, userId]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
+  
   // Scroll to bottom with improved reliability using SimpleBar's scroll element
   const scrollToBottom = useCallback(() => {
-    // Use requestAnimationFrame to ensure DOM has fully rendered
-    requestAnimationFrame(() => {
+    // Hide messages while scrolling to prevent jank
+    setIsScrolling(true);
+
+    const performScroll = () => {
       // Try to get SimpleBar's scrollable element
       const scrollableElement = simpleBarRef.current?.getScrollElement?.();
 
@@ -1044,16 +1046,34 @@ const ChatWindow = ({
         // Fallback to scrollIntoView
         messagesEndRef.current.scrollIntoView({ behavior: "auto", block: "end" });
       }
+    };
 
-      // Double-check after a short delay for any lazy-loaded content
-      setTimeout(() => {
-        const el = simpleBarRef.current?.getScrollElement?.();
-        if (el) {
-          el.scrollTop = el.scrollHeight;
-        }
-      }, 150);
+    // Use requestAnimationFrame for the initial scroll
+    requestAnimationFrame(() => {
+      performScroll();
     });
+
+    // Use a single debounced check for lazy-loaded content (images, etc.)
+    if (observerTimeoutRef.current) {
+      clearTimeout(observerTimeoutRef.current);
+    }
+    observerTimeoutRef.current = setTimeout(() => {
+      performScroll();
+      // Show messages again after scroll completes
+      setIsScrolling(false);
+    }, 400);
   }, []);
+  
+  // Scroll to bottom when messages change, with delay for content rendering
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Small delay to allow DOM to update
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [messages, scrollToBottom]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -2399,7 +2419,13 @@ const ChatWindow = ({
         style={{ flex: 1, minHeight: 0, width: "100%" }}
         autoHide={false}
       >
-        <div className="messages-container">
+        <div 
+          className="messages-container"
+          style={{
+            opacity: isScrolling ? 0 : 1,
+            transition: "opacity 0s ease-out"
+          }}
+        >
           {loading ? (
             <div className="no-chats">
               <p>Loading messages...</p>

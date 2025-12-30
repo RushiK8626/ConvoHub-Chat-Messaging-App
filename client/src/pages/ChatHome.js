@@ -28,6 +28,7 @@ import ToastContainer from "../components/ToastContainer";
 import { NotificationCenter } from "../components/NotificationCenter";
 import useContextMenu from "../hooks/useContextMenu";
 import { useToast } from "../hooks/useToast";
+import useResponsive from "../hooks/useResponsive";
 import ChatWindow from "./ChatWindow";
 import { formatChatPreviewTime } from "../utils/dateUtils";
 import socketService from "../utils/socket";
@@ -45,6 +46,7 @@ const ChatHome = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toasts, showToast, removeToast } = useToast();
+  const isWideScreen = useResponsive();
 
   const [greeting, setGreeting] = useState("");
 
@@ -730,6 +732,9 @@ const ChatHome = () => {
         setShowAIChat(true);
         setSelectedChatId(null);
       } else {
+        console.log(JSON.stringify(chat));
+        console.log(chatOrId);
+        handleMarkAsRead(parseInt(chat?.chat_id || chatOrId));
         setShowAIChat(false);
         setSelectedChatId(chat?.chat_id || chatOrId);
       }
@@ -745,6 +750,18 @@ const ChatHome = () => {
       setSelectedChatId(match[1]);
     }
   }, [location.pathname]);
+
+  // Handle responsive layout changes - navigate to chat page when screen becomes narrow
+  useEffect(() => {
+    if (!isWideScreen && selectedChatId) {
+      // Screen changed to narrow while a chat is open in split view
+      // Navigate to full-page chat view
+      navigate(`/chat/${selectedChatId}`);
+    } else if (!isWideScreen && showAIChat) {
+      // Screen changed to narrow while AI chat is open
+      navigate('/ai-chat');
+    }
+  }, [isWideScreen, selectedChatId, showAIChat, navigate]);
 
   // Send greeting message when new chat is loaded
   useEffect(() => {
@@ -855,12 +872,11 @@ const ChatHome = () => {
         // Update local state
         setChats((prevChats) =>
           prevChats.map((c) =>
-            c.chat_id === selectedChatForMenu.chat_id
+            c.chat_id === chatId
               ? { ...c, unread_count: 0 }
               : c
           )
         );
-        showToast(`Marked ${data.count || "all"} messages as read`, "success");
       } else {
         showToast("Failed to mark messages as read", "error");
       }

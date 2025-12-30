@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import SimpleBar from "simplebar-react";
 import "simplebar-react/dist/simplebar.min.css";
 import {
@@ -22,6 +22,7 @@ import BlockedUsers from "./BlockedUsers";
 import NotificationSettings from "./NotificationSettings";
 import PrivacySettings from "./PrivacySettings";
 import Language from "./Language";
+import useResponsive from "../hooks/useResponsive";
 import { unsubscribeFromPushNotifications } from "../utils/notification.utils";
 import {
   getSidebarWidth,
@@ -32,6 +33,7 @@ import "./Settings.css";
 
 const Settings = ({ isEmbedded = false }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedSetting, setSelectedSetting] = useState(null);
   const [leftPanelWidth, setLeftPanelWidth] = useState(() => {
     // Get saved width from shared storage or use default
@@ -45,6 +47,7 @@ const Settings = ({ isEmbedded = false }) => {
     "calc(100vh - 200px)"
   );
   const [userData, setUserData] = useState(null);
+  const isWideScreen = useResponsive();
 
   // Get user data from localStorage
   useEffect(() => {
@@ -74,7 +77,7 @@ const Settings = ({ isEmbedded = false }) => {
           id: "profile",
           icon: UserRound,
           label: "Profile",
-          path: "/profile",
+          path: "/settings/profile",
           description: "Manage your profile information",
           component: Profile,
         },
@@ -82,7 +85,7 @@ const Settings = ({ isEmbedded = false }) => {
           id: "privacy",
           icon: LockKeyhole,
           label: "Privacy",
-          path: "/privacy-settings",
+          path: "/settings/privacy",
           description: "Control your privacy settings",
           component: PrivacySettings
         },
@@ -90,14 +93,14 @@ const Settings = ({ isEmbedded = false }) => {
           id: "security",
           icon: ShieldCheck,
           label: "Security",
-          action: () => alert("Security settings - Connect to backend"),
+          path: "/settings/security",
           description: "Password and authentication",
         },
         {
           id: "blocked-users",
           icon: Ban,
           label: "Blocked Users",
-          path: "/blocked-users",
+          path: "/settings/blocked-users",
           description: "Manage blocked contacts",
           component: BlockedUsers,
         },
@@ -110,7 +113,7 @@ const Settings = ({ isEmbedded = false }) => {
           id: "notifications",
           icon: BellRing,
           label: "Notifications",
-          path: "/notification-settings",
+          path: "/settings/notifications",
           description: "Manage notification preferences",
           component: NotificationSettings,
         },
@@ -118,7 +121,7 @@ const Settings = ({ isEmbedded = false }) => {
           id: "appearance",
           icon: Palette,
           label: "Appearance",
-          path: "/appearance",
+          path: "/settings/appearance",
           description: "Theme and display options",
           component: Appearance,
         },
@@ -126,7 +129,7 @@ const Settings = ({ isEmbedded = false }) => {
           id: "language",
           icon: Languages,
           label: "Language",
-          path: "/language",
+          path: "/settings/language",
           description: "Translation language settings",
           component: Language,
         },
@@ -139,12 +142,35 @@ const Settings = ({ isEmbedded = false }) => {
           id: "help",
           icon: LifeBuoy,
           label: "Help & Support",
-          action: () => alert("Help & Support - Connect to backend"),
+          path: "/settings/help",
           description: "Get help with ConvoHub",
         },
       ],
     },
   ];
+
+  // Restore selectedSetting from navigation state (when returning from sub-page on wide screen)
+  useEffect(() => {
+    const selectedSettingId = location.state?.selectedSettingId;
+    if (selectedSettingId && isWideScreen) {
+      // Find the setting item by id
+      for (const section of settingsSections) {
+        const item = section.items.find((item) => item.id === selectedSettingId);
+        if (item) {
+          setSelectedSetting(item);
+          break;
+        }
+      }
+    }
+  }, [location.state?.selectedSettingId, isWideScreen]);
+
+  // Handle responsive layout changes - navigate to setting page when screen becomes narrow
+  useEffect(() => {
+    if (!isWideScreen && selectedSetting?.path) {
+      // Screen changed to narrow while a setting is open in split view
+      navigate(selectedSetting.path);
+    }
+  }, [isWideScreen, selectedSetting, navigate]);
 
   const handleLogout = async () => {
     if (window.confirm("Are you sure you want to logout?")) {

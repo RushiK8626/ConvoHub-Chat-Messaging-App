@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Languages } from "lucide-react";
 import PageHeader from "../components/PageHeader";
+import useResponsive from "../hooks/useResponsive";
 import "./Language.css";
 
 const LANGUAGES = [
@@ -22,9 +23,17 @@ const LANGUAGES = [
 
 const Language = ({ isEmbedded = false }) => {
   const navigate = useNavigate();
+  const isWideScreen = useResponsive();
   const [defaultTranslationLanguage, setDefaultTranslationLanguage] = useState(() => {
     return localStorage.getItem("defaultTranslationLanguage") || "en";
   });
+
+  // Handle responsive layout changes - navigate to settings page when screen becomes wide
+  useEffect(() => {
+    if (!isEmbedded && isWideScreen) {
+      navigate("/settings", { state: { selectedSettingId: "language" } });
+    }
+  }, [isWideScreen, isEmbedded, navigate]);
 
   // Save to localStorage whenever language changes
   const handleLanguageSelect = (langCode) => {
