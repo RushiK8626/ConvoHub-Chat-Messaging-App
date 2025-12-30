@@ -23,6 +23,7 @@ import PrivacySettings from "./pages/PrivacySettings";
 import "./App.css";
 import "./styles/theme.css";
 import NotificationSettings from "./pages/NotificationSettings";
+import Language from "./pages/Language";
 
 // Auth context to force rerender on login/logout
 export const AuthContext = createContext({ refreshAuth: () => {} });
@@ -67,7 +68,7 @@ function App() {
                 element={hasToken ? <AIChatWindow /> : <Navigate to="/login" />}
               />
               <Route
-                path="/profile"
+                path="/settings/profile"
                 element={hasToken ? <Profile /> : <Navigate to="/login" />}
               />
               <Route
@@ -79,23 +80,29 @@ function App() {
                 element={hasToken ? <Settings /> : <Navigate to="/login" />}
               />
               <Route
-                path="/appearance"
+                path="/settings/appearance"
                 element={hasToken ? <Appearance /> : <Navigate to="/login" />}
               />
               <Route
-                path="/blocked-users"
+                path="/settings/blocked-users"
                 element={hasToken ? <BlockedUsers /> : <Navigate to="/login" />}
               />
               <Route
-                path="/notification-settings"
+                path="/settings/notifications"
                 element={
                   hasToken ? <NotificationSettings /> : <Navigate to="/login" />
                 }
               />
               <Route
-                path="/privacy-settings"
+                path="/settings/privacy"
                 element={
                   hasToken ? <PrivacySettings /> : <Navigate to="/login" />
+                }
+              />
+              <Route
+                path="/settings/language"
+                element={
+                  hasToken ? <Language /> : <Navigate to="/login" />
                 }
               />
               <Route
