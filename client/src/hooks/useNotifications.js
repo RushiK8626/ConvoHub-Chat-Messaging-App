@@ -3,7 +3,7 @@ import {
   requestNotificationPermission,
   subscribeToPushNotifications,
   unsubscribeFromPushNotifications,
-} from "../utils/notification.utils";
+} from "../utils/notifications";
 
 export const useNotifications = (userId, token) => {
   const [isSupported, setIsSupported] = useState(false);

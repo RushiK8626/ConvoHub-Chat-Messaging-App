@@ -6,25 +6,17 @@ const { upload } = require('../config/upload');
 
 router.use(verifyToken);
 
-// Essential routes only
-router.post('/', messageController.createMessage); // Send text message (no attachment)
+router.post('/', messageController.createMessage);
 router.post('/upload', upload.single('file'), messageController.uploadFileAndCreateMessage);
-router.post('/forward', messageController.forwardMessage); // Forward message to one or more chats
-
-// Get messages (cache-first for recent, pagination for older) - MUST BE BEFORE :messageId routes
-router.get('/chat/:chatId/recent', messageController.getRecentMessages); // Fast cached endpoint
-router.get('/chat/:chatId', messageController.getMessagesByChat); // Paginated (older messages)
+router.post('/forward', messageController.forwardMessage);
+router.get('/chat/:chatId/recent', messageController.getRecentMessages);
+router.get('/chat/:chatId', messageController.getMessagesByChat);
 router.put('/chat/:chatId/read-all/:userId', messageController.markAllMessagesAsRead);
-
 router.get('/unread/:userId', messageController.getUnreadMessageCount);
-
-// Delete routes
-router.delete('/batch', messageController.deleteBatchMessagesForUser); // Batch delete for current user only
-router.delete('/chat/:chatId/clear', messageController.deleteAllMessagesInChatForUser); // Clear all messages in chat for current user
-router.delete('/:id', messageController.deleteMessageForUser); // Delete for current user only
-router.delete('/:id/all', messageController.deleteMessageForAll); // Delete for all members (sender only)
-
-// Specific routes with params - MUST BE LAST
+router.delete('/batch', messageController.deleteBatchMessagesForUser);
+router.delete('/chat/:chatId/clear', messageController.deleteAllMessagesInChatForUser);
+router.delete('/:id', messageController.deleteMessageForUser);
+router.delete('/:id/all', messageController.deleteMessageForAll);
 router.get('/:messageId/attachments', messageController.getMessageAttachments);
 
 module.exports = router;

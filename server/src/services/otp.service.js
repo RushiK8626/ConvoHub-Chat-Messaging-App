@@ -7,10 +7,6 @@ const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_T
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
   : null;
 
-/**
- * Send email using Resend API
- * Works on servers where SMTP ports are blocked (like DigitalOcean)
- */
 const sendEmailWithResend = async (to, subject, html) => {
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   
@@ -40,7 +36,6 @@ const sendEmailWithResend = async (to, subject, html) => {
   return await response.json();
 };
 
-// Generate random OTP
 const generateOTP = (length = 6) => {
   const digits = '0123456789';
   let otp = '';
@@ -50,10 +45,8 @@ const generateOTP = (length = 6) => {
   return otp;
 };
 
-// Export generateOTP for use in other modules
 exports.generateOTP = generateOTP;
 
-// Create and store OTP
 exports.createOTP = async (userId, otpType = 'login', txClient = null) => {
   try {
     // Ensure userId is a number
@@ -83,7 +76,6 @@ exports.createOTP = async (userId, otpType = 'login', txClient = null) => {
     return { otpCode, expiresAt };
     
   } catch (error) {
-    console.error('Error creating OTP:', error);
     throw new Error('Failed to generate OTP');
   }
 };
@@ -120,10 +112,9 @@ exports.sendOTPEmail = async (email, otpCode, otpType) => {
     `;
 
     // Use Resend API
-    await sendEmailWithResend(email, subject, html);
+    // await sendEmailWithResend(email, subject, html);
 
   } catch (error) {
-    console.error('Error sending email:', error);
     throw error;
   }
 };
@@ -137,57 +128,17 @@ exports.sendOTP = async (user, otpCode, otpType) => {
       return { success: true, method: 'email', destination: user.email };
     }
     
-    // Priority 2: SMS (only in production)
-    if (user.phone) {
-      await this.sendOTPSMS(user.phone, otpCode, otpType);
-      return { success: true, method: 'sms', destination: user.phone };
-    }
-    
     throw new Error('No valid contact method available');
     
   } catch (error) {
-    console.error('Error sending OTP:', error.message);
-    
     throw error;
   }
 };
 
-// Send OTP via SMS
-exports.sendOTPSMS = async (phoneNumber, otpCode, otpType) => {
-
-  // Real Twilio SMS (production only)
-  try {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const twilioNumber = process.env.TWILIO_PHONE_NUMBER;
-
-    if (!accountSid || !authToken || !twilioNumber) {
-      throw new Error('Twilio credentials not configured');
-    }
-
-    const client = twilio(accountSid, authToken);
-    
-    const message = await client.messages.create({
-      body: `Your ConvoHub verification code is: ${otpCode}. Valid for 5 minutes.`,
-      from: twilioNumber,
-      to: phoneNumber
-    });
-
-    return { success: true, sid: message.sid };
-
-  } catch (error) {
-    console.error('Error sending OTP SMS:', error);
-    throw error;
-  }
-};
-
-// Verify OTP
 exports.verifyOTP = async (userId, otpCode, otpType = 'login') => {
   try {
-    // Ensure userId is a number
     const userIdInt = typeof userId === 'string' ? parseInt(userId) : userId;
     
-    // Get user info
     const user = await prisma.user.findUnique({
       where: { user_id: userIdInt }
     });
@@ -196,11 +147,10 @@ exports.verifyOTP = async (userId, otpCode, otpType = 'login') => {
       return { success: false, message: 'User not found' };
     }
 
-    // Normal OTP verification - ensure types match
     const otp = await prisma.otp.findFirst({
       where: {
         user_id: userIdInt,
-        otp_code: String(otpCode), // Ensure string comparison
+        otp_code: String(otpCode),
         otp_type: otpType,
         expires_at: { gte: new Date() }
       }
@@ -217,12 +167,10 @@ exports.verifyOTP = async (userId, otpCode, otpType = 'login') => {
     return { success: true, message: 'OTP verified successfully' };
 
   } catch (error) {
-    console.error('OTP verification error:', error);
     throw error;
   }
 };
 
-// Clean up expired OTPs (can be run periodically)
 exports.cleanupExpiredOTPs = async () => {
   try {
     const result = await prisma.otp.deleteMany({
@@ -235,7 +183,6 @@ exports.cleanupExpiredOTPs = async () => {
     });
     return result.count;
   } catch (error) {
-    console.error('Error cleaning up OTPs:', error);
     throw new Error('Failed to cleanup OTPs');
   }
 };

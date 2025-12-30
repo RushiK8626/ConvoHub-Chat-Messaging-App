@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Generate access token
 exports.generateAccessToken = (user) => {
   return jwt.sign(
     {
@@ -15,7 +14,6 @@ exports.generateAccessToken = (user) => {
   );
 };
 
-// Generate refresh token
 exports.generateRefreshToken = (user) => {
   return jwt.sign(
     {
@@ -27,12 +25,10 @@ exports.generateRefreshToken = (user) => {
   );
 };
 
-// Generate both tokens
 exports.generateTokens = async (user) => {
   const accessToken = this.generateAccessToken(user);
   const refreshToken = this.generateRefreshToken(user);
 
-  // Store refresh token in database
   await prisma.auth.update({
     where: { user_id: user.user_id },
     data: { refresh_token: refreshToken }
@@ -41,7 +37,6 @@ exports.generateTokens = async (user) => {
   return { accessToken, refreshToken };
 };
 
-// Verify access token
 exports.verifyAccessToken = (token) => {
   try {
     return jwt.verify(token, process.env.JWT_SECRET);
@@ -50,7 +45,6 @@ exports.verifyAccessToken = (token) => {
   }
 };
 
-// Verify refresh token
 exports.verifyRefreshToken = (token) => {
   try {
     return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
@@ -59,12 +53,10 @@ exports.verifyRefreshToken = (token) => {
   }
 };
 
-// Refresh access token using refresh token
 exports.refreshAccessToken = async (refreshToken) => {
   try {
     const decoded = this.verifyRefreshToken(refreshToken);
 
-    // Check if refresh token exists in database
     const auth = await prisma.auth.findFirst({
       where: {
         user_id: decoded.user_id,
@@ -86,7 +78,6 @@ exports.refreshAccessToken = async (refreshToken) => {
       throw new Error('Invalid refresh token');
     }
 
-    // Generate new access token
     const accessToken = this.generateAccessToken(auth.user);
 
     return { accessToken, user: auth.user };
@@ -95,7 +86,6 @@ exports.refreshAccessToken = async (refreshToken) => {
   }
 };
 
-// Revoke refresh token (logout)
 exports.revokeRefreshToken = async (userId) => {
   try {
     await prisma.auth.update({

@@ -7,10 +7,6 @@ const USER_PROFILE_TTL = 3600; // 1 hour
 const CHAT_MEMBERSHIPS_TTL = 1800; // 30 minutes
 const FRIEND_LIST_TTL = 1800; // 30 minutes
 
-/**
- * Cache user profile
- * @param {Object} user - User object
- */
 const cacheUserProfile = async (user) => {
   try {
     const userKey = `user:profile:${user.user_id}`;
@@ -30,16 +26,10 @@ const cacheUserProfile = async (user) => {
     await redis.expire(userKey, USER_PROFILE_TTL);
     return true;
   } catch (error) {
-    console.error('Error caching user profile:', error.message);
     return false;
   }
 };
 
-/**
- * Get cached user profile
- * @param {number} userId
- * @returns {Object|null} user profile
- */
 const getCachedUserProfile = async (userId) => {
   try {
     const userKey = `user:profile:${userId}`;
@@ -61,27 +51,17 @@ const getCachedUserProfile = async (userId) => {
       created_at: cached.created_at
     };
   } catch (error) {
-    console.error('Error getting cached user profile:', error.message);
     return null;
   }
 };
 
-/**
- * Get user profile (cache-first)
- * @param {number} userId
- * @returns {Object} user profile
- */
 const getUserProfile = async (userId) => {
   try {
-    // Try cache first
     const cached = await getCachedUserProfile(userId);
     if (cached) {
-      console.log(`Cache HIT for user profile ${userId}`);
       return cached;
     }
     
-    // Cache miss - fetch from database
-    console.log(`Cache MISS for user profile ${userId} - fetching from DB`);
     const user = await prisma.user.findUnique({
       where: { user_id: userId },
       select: {
@@ -102,16 +82,10 @@ const getUserProfile = async (userId) => {
     
     return user;
   } catch (error) {
-    console.error('Error getting user profile:', error.message);
     throw error;
   }
 };
 
-/**
- * Cache user's chat memberships
- * @param {number} userId
- * @param {Array} chats - Array of chat objects
- */
 const cacheChatMemberships = async (userId, chats) => {
   try {
     const membershipKey = `user:chats:${userId}`;
@@ -143,16 +117,10 @@ const cacheChatMemberships = async (userId, chats) => {
     
     return true;
   } catch (error) {
-    console.error('Error caching chat memberships:', error.message);
     return false;
   }
 };
 
-/**
- * Get cached chat memberships
- * @param {number} userId
- * @returns {Array|null} chat memberships
- */
 const getCachedChatMemberships = async (userId) => {
   try {
     const membershipKey = `user:chats:${userId}`;
@@ -181,27 +149,17 @@ const getCachedChatMemberships = async (userId) => {
     
     return chats.length > 0 ? chats : null;
   } catch (error) {
-    console.error('Error getting cached chat memberships:', error.message);
     return null;
   }
 };
 
-/**
- * Get user's chat memberships (cache-first)
- * @param {number} userId
- * @returns {Array} chat memberships
- */
 const getChatMemberships = async (userId) => {
   try {
-    // Try cache first
     const cached = await getCachedChatMemberships(userId);
     if (cached) {
-      console.log(`Cache HIT for chat memberships ${userId}`);
       return cached;
     }
     
-    // Cache miss - fetch from database
-    console.log(`Cache MISS for chat memberships ${userId} - fetching from DB`);
     const memberships = await prisma.chatMember.findMany({
       where: { user_id: userId },
       include: {
@@ -230,16 +188,10 @@ const getChatMemberships = async (userId) => {
     
     return chats;
   } catch (error) {
-    console.error('Error getting chat memberships:', error.message);
     throw error;
   }
 };
 
-/**
- * Cache user's friend list
- * @param {number} userId
- * @param {Array} friends - Array of friend objects
- */
 const cacheFriendList = async (userId, friends) => {
   try {
     const friendListKey = `user:friends:${userId}`;
@@ -263,16 +215,10 @@ const cacheFriendList = async (userId, friends) => {
     
     return true;
   } catch (error) {
-    console.error('Error caching friend list:', error.message);
     return false;
   }
 };
 
-/**
- * Get cached friend list
- * @param {number} userId
- * @returns {Array|null} friends
- */
 const getCachedFriendList = async (userId) => {
   try {
     const friendListKey = `user:friends:${userId}`;
@@ -293,29 +239,17 @@ const getCachedFriendList = async (userId) => {
     
     return friends.length > 0 ? friends : null;
   } catch (error) {
-    console.error('Error getting cached friend list:', error.message);
     return null;
   }
 };
 
-/**
- * Get user's friend list (cache-first)
- * @param {number} userId
- * @returns {Array} friends
- */
 const getFriendList = async (userId) => {
   try {
-    // Try cache first
     const cached = await getCachedFriendList(userId);
     if (cached) {
-      console.log(`Cache HIT for friend list ${userId}`);
       return cached;
     }
     
-    // Cache miss - fetch from database
-    console.log(`Cache MISS for friend list ${userId} - fetching from DB`);
-    
-    // Get friends where user is user1
     const friends1 = await prisma.friendship.findMany({
       where: {
         user1_id: userId,
@@ -336,7 +270,6 @@ const getFriendList = async (userId) => {
       }
     });
     
-    // Get friends where user is user2
     const friends2 = await prisma.friendship.findMany({
       where: {
         user2_id: userId,
@@ -357,7 +290,6 @@ const getFriendList = async (userId) => {
       }
     });
     
-    // Combine and format friends
     const friends = [
       ...friends1.map(f => f.user2),
       ...friends2.map(f => f.user1)
@@ -369,31 +301,20 @@ const getFriendList = async (userId) => {
     
     return friends;
   } catch (error) {
-    console.error('Error getting friend list:', error.message);
     throw error;
   }
 };
 
-/**
- * Invalidate user profile cache
- * @param {number} userId
- */
 const invalidateUserProfile = async (userId) => {
   try {
     const userKey = `user:profile:${userId}`;
     await redis.del(userKey);
-    console.log(`Invalidated user profile cache for ${userId}`);
     return true;
   } catch (error) {
-    console.error('Error invalidating user profile:', error.message);
     return false;
   }
 };
 
-/**
- * Invalidate chat memberships cache
- * @param {number} userId
- */
 const invalidateChatMemberships = async (userId) => {
   try {
     const membershipKey = `user:chats:${userId}`;
@@ -408,34 +329,22 @@ const invalidateChatMemberships = async (userId) => {
       await redis.del(chatKey);
     }
     
-    console.log(`Invalidated chat memberships cache for user ${userId}`);
     return true;
   } catch (error) {
-    console.error('Error invalidating chat memberships:', error.message);
     return false;
   }
 };
 
-/**
- * Invalidate friend list cache
- * @param {number} userId
- */
 const invalidateFriendList = async (userId) => {
   try {
     const friendListKey = `user:friends:${userId}`;
     await redis.del(friendListKey);
-    console.log(`Invalidated friend list cache for user ${userId}`);
     return true;
   } catch (error) {
-    console.error('Error invalidating friend list:', error.message);
     return false;
   }
 };
 
-/**
- * Invalidate all user caches
- * @param {number} userId
- */
 const invalidateAllUserCaches = async (userId) => {
   try {
     await Promise.all([
@@ -445,7 +354,6 @@ const invalidateAllUserCaches = async (userId) => {
     ]);
     return true;
   } catch (error) {
-    console.error('Error invalidating all user caches:', error.message);
     return false;
   }
 };

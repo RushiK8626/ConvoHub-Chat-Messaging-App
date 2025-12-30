@@ -6,24 +6,24 @@ import {
   Navigate,
 } from "react-router-dom";
 import { ThemeProvider } from "./context/ThemeContext";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import OTPVerification from "./pages/OTPVerification";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import ChatHome from "./pages/ChatHome";
-import ChatWindow from "./pages/ChatWindow";
-import AIChatWindow from "./pages/AIChatWindow";
-import Profile from "./pages/Profile";
-import UserProfile from "./pages/UserProfile";
-import Settings from "./pages/Settings";
-import Appearance from "./pages/Appearance";
-import BlockedUsers from "./pages/BlockedUsers";
-import PrivacySettings from "./pages/PrivacySettings";
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import OTPVerification from "./pages/auth/OTPVerification";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
+import ChatHome from "./pages/chat/ChatHome";
+import ChatWindow from "./pages/chat/ChatWindow";
+import AIChatWindow from "./pages/chat/AIChatWindow";
+import Profile from "./pages/settings/Profile";
+import UserProfile from "./pages/settings/UserProfile";
+import Settings from "./pages/settings/Settings";
+import Appearance from "./pages/settings/Appearance";
+import BlockedUsers from "./pages/settings/BlockedUsers";
+import PrivacySettings from "./pages/settings/PrivacySettings";
+import NotificationSettings from "./pages/settings/NotificationSettings";
+import Language from "./pages/settings/Language";
 import "./App.css";
 import "./styles/theme.css";
-import NotificationSettings from "./pages/NotificationSettings";
-import Language from "./pages/Language";
 
 // Auth context to force rerender on login/logout
 export const AuthContext = createContext({ refreshAuth: () => {} });

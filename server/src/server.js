@@ -13,7 +13,6 @@ const envPath = path.join(__dirname, '..', envFile);
 const result = dotenv.config({ path: envPath });
 
 if (result.error) {
-  console.error(`Error loading ${envFile} file:`, result.error);
 }
 
 // create express application
@@ -178,25 +177,17 @@ async function startServer() {
   const dbConnected = await testConnection();
   
   if (!dbConnected) {
-    console.error('Failed to connect to database. Server not started.');
     process.exit(1);
   }
   
   // Initialize Redis (non-blocking - server starts even if Redis fails)
   try {
     await initRedis();
-    console.log('✓ Redis connected - full functionality available');
   } catch (error) {
-    console.log('⚠️  Redis unavailable - running in memory-fallback mode');
-    console.log('   Some features may have reduced persistence across server restarts');
   }
   
   // Start HTTP server
   server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    if (!isRedisAvailable()) {
-      console.log('📝 Note: Redis is not connected. Using in-memory fallback for caching.');
-    }
   });
 }
 

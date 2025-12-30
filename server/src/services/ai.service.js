@@ -10,21 +10,47 @@ const AI_CONFIG = {
   temperature: parseFloat(process.env.GEMINI_TEMPERATURE) || 0.7,
 };
 
-/**
- * Generate smart reply suggestions based on message context
- * @param {Array<Object>} messageHistory - Array of recent messages {sender: string, text: string}
- * @param {number} count - Number of suggestions to generate (default: 3)
- * @returns {Promise<Array<string>>} - Array of suggested replies
- */
+const functionDeclarations = [
+  {
+    name: "searchMessages",
+    description: "Search for messages in the user's chats. Use this when user asks to find, search, or look for specific messages, conversations, or content. Returns matching messages with sender info and timestamps.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        query: {
+          type: "STRING",
+          description: "The search query/keywords to look for in messages"
+        },
+        chatId: {
+          type: "NUMBER",
+          description: "Optional: Specific chat ID to search in. If not provided, searches all user's chats"
+        },
+        senderUsername: {
+          type: "STRING",
+          description: "Optional: Filter messages by sender's username"
+        },
+        startDate: {
+          type: "STRING",
+          description: "Optional: Start date for search range (ISO format, e.g., '2024-01-01')"
+        },
+        endDate: {
+          type: "STRING",
+          description: "Optional: End date for search range (ISO format, e.g., '2024-12-31')"
+        },
+        limit: {
+          type: "NUMBER",
+          description: "Maximum number of results to return (default: 10, max: 50)"
+        }
+      },
+      required: ["query"]
+    }
+  }
+];
+
 const generateSmartReplies = async (messageHistory, count = 3) => {
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('Gemini API key not configured');
-    }
-
-    if (!messageHistory || messageHistory.length === 0) {
-      throw new Error('Message history is required');
-    }
+    if (!process.env.GEMINI_API_KEY) throw new Error('Gemini API key not configured');
+    if (!messageHistory || messageHistory.length === 0) throw new Error('Message history is required');
 
     // Format message history for context
     const conversationContext = messageHistory
@@ -64,31 +90,15 @@ Return ONLY the suggestions, one per line, without numbering or formatting. You 
 
     return suggestions;
   } catch (error) {
-    console.error('Error generating smart replies:', error.message);
     throw error;
   }
 };
 
-/**
- * Translate message text to target language
- * @param {string} text - Text to translate
- * @param {string} targetLanguage - Target language (e.g., 'es', 'fr', 'de', 'hi', 'zh')
- * @param {string} sourceLanguage - Source language (optional, auto-detect if not provided)
- * @returns {Promise<Object>} - {translatedText, detectedLanguage}
- */
 const translateMessage = async (text, targetLanguage, sourceLanguage = 'auto') => {
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('Gemini API key not configured');
-    }
-
-    if (!text || !text.trim()) {
-      throw new Error('Text to translate is required');
-    }
-
-    if (!targetLanguage) {
-      throw new Error('Target language is required');
-    }
+    if (!process.env.GEMINI_API_KEY) throw new Error('Gemini API key not configured');
+    if (!text || !text.trim()) throw new Error('Text to translate is required');
+    if (!targetLanguage) throw new Error('Target language is required');
 
     // Language name mapping for better prompts
     const languageNames = {
@@ -131,26 +141,14 @@ const translateMessage = async (text, targetLanguage, sourceLanguage = 'auto') =
       targetLanguage,
     };
   } catch (error) {
-    console.error('Error translating message:', error.message);
     throw error;
   }
 };
 
-/**
- * Summarize a conversation or long message thread
- * @param {Array<Object>} messages - Array of messages to summarize {sender: string, text: string, timestamp: Date}
- * @param {string} summaryType - Type of summary: 'brief' (1-2 sentences), 'detailed' (paragraph), 'bullet' (bullet points)
- * @returns {Promise<string>} - Summary text
- */
 const summarizeConversation = async (messages, summaryType = 'brief') => {
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('Gemini API key not configured');
-    }
-
-    if (!messages || messages.length === 0) {
-      throw new Error('Messages to summarize are required');
-    }
+    if (!process.env.GEMINI_API_KEY) throw new Error('Gemini API key not configured');
+    if (!messages || messages.length === 0) throw new Error('Messages to summarize are required');
 
     // Format messages for summarization
     const conversationText = messages
@@ -189,25 +187,14 @@ Summary:`;
 
     return summary;
   } catch (error) {
-    console.error('Error summarizing conversation:', error.message);
     throw error;
   }
 };
 
-/**
- * Detect the language of a given text
- * @param {string} text - Text to analyze
- * @returns {Promise<Object>} - {language, languageCode, confidence}
- */
 const detectLanguage = async (text) => {
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('Gemini API key not configured');
-    }
-
-    if (!text || !text.trim()) {
-      throw new Error('Text is required for language detection');
-    }
+    if (!process.env.GEMINI_API_KEY) throw new Error('Gemini API key not configured');
+    if (!text || !text.trim()) throw new Error('Text is required for language detection');
 
     const prompt = `Detect the language of the following text and respond with ONLY the ISO 639-1 language code (e.g., en, es, fr, de, hi, zh):\n\n${text}`;
 
@@ -225,24 +212,16 @@ const detectLanguage = async (text) => {
 
     return {
       languageCode,
-      text: text.substring(0, 100), // Return snippet for verification
+      text: text.substring(0, 100),
     };
   } catch (error) {
-    console.error('Error detecting language:', error.message);
     throw error;
   }
 };
 
-/**
- * Generate a contextual message suggestion (for starting conversations)
- * @param {Object} context - Context about the chat {chatType: 'group'|'direct', chatName: string, recipientName: string}
- * @returns {Promise<Array<string>>} - Array of conversation starters
- */
 const generateConversationStarters = async (context) => {
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('Gemini API key not configured');
-    }
+    if (!process.env.GEMINI_API_KEY) throw new Error('Gemini API key not configured');
 
     const { chatType, chatName, recipientName } = context;
     
@@ -278,25 +257,12 @@ const generateConversationStarters = async (context) => {
 
     return starters;
   } catch (error) {
-    console.error('Error generating conversation starters:', error.message);
     throw error;
   }
 };
 
-/**
- * Check if AI service is properly configured
- * @returns {boolean} - True if configured
- */
-const isConfigured = () => {
-  return !!process.env.GEMINI_API_KEY;
-};
+const isConfigured = () => !!process.env.GEMINI_API_KEY;
 
-/**
- * Generate AI chat response for conversational AI feature
- * @param {string} userMessage - User's message
- * @param {Array<Object>} conversationHistory - Previous messages [{role: 'user'|'assistant', content: string}]
- * @returns {Promise<string>} - AI response
- */
 const generateChatResponse = async (userMessage, conversationHistory = []) => {
   try {
     if (!process.env.GEMINI_API_KEY) {
@@ -340,10 +306,139 @@ Respond naturally as a helpful assistant using Markdown formatting:`;
     const response = await result.response;
     return response.text().trim();
   } catch (error) {
-    console.error('Error generating chat response:', error.message);
     throw error;
   }
 };
+
+const generateChatResponseWithFunctions = async (userMessage, conversationHistory = [], context = {}) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) throw new Error('Gemini API key not configured');
+
+    // Initialize model with function calling capability
+    const model = genAI.getGenerativeModel({ 
+      model: AI_CONFIG.model,
+      generationConfig: {
+        maxOutputTokens: 1024,
+        temperature: 0.7,
+      },
+      tools: [{ functionDeclarations }],
+    });
+
+    // Build conversation history for Gemini chat format
+    const chatHistory = conversationHistory.slice(-20).map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }]
+    }));
+
+    // System instruction text
+    const systemInstructionText = `You are a helpful, friendly AI assistant in a chat application called ConvoHub.
+You have access to functions that can help users interact with the app.
+
+AVAILABLE FUNCTIONS:
+1. searchMessages - Search for messages in user's chats. Use this when user asks to find, search, or look for messages.
+
+WHEN TO USE FUNCTIONS:
+- User says "find messages about...", "search for...", "look for messages...", "what did X say about..."
+- User wants to locate specific conversations or content
+- User asks about past messages or discussions
+
+Be conversational and helpful. Use emojis when appropriate. 
+Format responses using Markdown for readability.
+When you use a function, explain what you're doing to the user.`;
+
+    // Start chat with history
+    const chat = model.startChat({
+      history: chatHistory,
+      systemInstruction: {
+        role: "user",
+        parts: [{ text: systemInstructionText }]
+      }
+    });
+
+    // Send message and check for function call
+    const result = await chat.sendMessage(userMessage);
+    const response = result.response;
+
+    // Check if Gemini wants to call a function
+    const functionCalls = response.functionCalls();
+    
+    if (functionCalls && functionCalls.length > 0) {
+      const functionCall = functionCalls[0]; // Handle first function call
+      return {
+        response: null,
+        functionCall: {
+          name: functionCall.name,
+          args: functionCall.args
+        },
+        requiresFunctionExecution: true
+      };
+    }
+
+    // No function call, return text response
+    return {
+      response: response.text().trim(),
+      functionCall: null,
+      requiresFunctionExecution: false
+    };
+
+  } catch (error) {
+    throw error;
+  }
+};
+
+const continueChatWithFunctionResult = async (functionCall, functionResult, conversationHistory = [], originalMessage) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) throw new Error('Gemini API key not configured');
+
+    const model = genAI.getGenerativeModel({ 
+      model: AI_CONFIG.model,
+      generationConfig: {
+        maxOutputTokens: 1024,
+        temperature: 0.7,
+      },
+      tools: [{ functionDeclarations }],
+    });
+
+    // Build conversation history
+    const chatHistory = conversationHistory.slice(-20).map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }]
+    }));
+
+    const systemInstructionText = `You are a helpful AI assistant in ConvoHub chat app.
+You just executed a function and received results. Present the results in a helpful, readable format.
+Use Markdown formatting. Be concise but informative.
+If no results found, be helpful and suggest alternatives.`;
+
+    const chat = model.startChat({
+      history: chatHistory,
+      systemInstruction: {
+        role: "user",
+        parts: [{ text: systemInstructionText }]
+      }
+    });
+
+    // Send the original message
+    await chat.sendMessage(originalMessage);
+
+    // Send function result back to the model
+    const result = await chat.sendMessage([
+      {
+        functionResponse: {
+          name: functionCall.name,
+          response: functionResult
+        }
+      }
+    ]);
+
+    return result.response.text().trim();
+
+  } catch (error) {
+    throw error;
+  }
+};
+
+const getFunctionDeclarations = () => functionDeclarations;
 
 module.exports = {
   generateSmartReplies,
@@ -353,4 +448,7 @@ module.exports = {
   generateConversationStarters,
   isConfigured,
   generateChatResponse,
+  generateChatResponseWithFunctions,
+  continueChatWithFunctionResult,
+  getFunctionDeclarations,
 };

@@ -59,7 +59,6 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
     try {
       fs.writeFileSync(filePath, buffer);
     } catch (writeErr) {
-      console.error(`Failed to write file to disk:`, writeErr);
       socket.emit('file_upload_error', { 
         error: 'Failed to save file to disk',
         details: writeErr.message,
@@ -196,9 +195,7 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
     });
 
     // Cache the file message
-    cacheService.addMessageToCache(parseInt(chat_id), completeMessage).catch(err => {
-      console.error('Failed to cache file message:', err.message);
-    });
+    cacheService.addMessageToCache(parseInt(chat_id), completeMessage).catch(() => {});
 
     // Send push notifications to recipients (exclude sender)
     const fileMessageRecipientIds = chatMembers
@@ -222,7 +219,6 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
           fileMessageRecipientIds
         );
       } catch (pushError) {
-        console.error(' Failed to send push notifications:', pushError.message);
       }
     }
 
@@ -237,7 +233,6 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
     });
 
   } catch (error) {
-    console.error('Error in _processCompleteFileMessage:', error);
     socket.emit('file_upload_error', { 
       error: 'Failed to process file',
       details: error.message,
@@ -359,13 +354,11 @@ const initializeSocket = (io) => {
       socket.user = user;
       next();
     } catch (error) {
-      console.error('Socket authentication error:', error);
       next(new Error('Invalid authentication token'));
     }
   });
 
   io.on('connection', async (socket) => {
-    console.log('User connected:', socket.id);
 
     const user = socket.user;
     const userId = user.user_id;
@@ -702,9 +695,7 @@ const initializeSocket = (io) => {
         });
 
         // Cache the message for faster retrieval
-        cacheService.addMessageToCache(parseInt(chat_id), completeMessage).catch(err => {
-          console.error('Failed to cache message:', err.message);
-        });
+        cacheService.addMessageToCache(parseInt(chat_id), completeMessage).catch(() => {});
 
         // Send push notifications to recipients (exclude sender)
         const recipientIds = chatMembers
@@ -727,8 +718,7 @@ const initializeSocket = (io) => {
               recipientIds
             );
           } catch (pushError) {
-            console.error(' Failed to send push notifications:', pushError.message);
-            // Don't fail the message send, just log the error
+            // push notification failure is non-fatal
           }
         }
 
@@ -750,7 +740,6 @@ const initializeSocket = (io) => {
         }
 
       } catch (error) {
-        console.error('Error in send_message:', error);
         socket.emit('message_error', { 
           error: 'Failed to send message',
           details: error.message,
@@ -796,7 +785,6 @@ const initializeSocket = (io) => {
         });
 
         if (!existingStatus) {
-          console.warn(`No message status found for message ${parsedMessageId} and user ${userId}`);
           socket.emit('status_error', { error: 'Message status record not found' });
           return;
         }
@@ -822,7 +810,6 @@ const initializeSocket = (io) => {
         });
 
         if (!message) {
-          console.warn(`Message not found: ${parsedMessageId}`);
           socket.emit('status_error', { error: 'Message not found' });
           return;
         }
@@ -836,7 +823,6 @@ const initializeSocket = (io) => {
         });
 
       } catch (error) {
-        console.error('Error in update_message_status:', error);
         socket.emit('status_error', { 
           error: 'Failed to update message status',
           details: error.message 
@@ -969,7 +955,6 @@ const initializeSocket = (io) => {
         });
 
       } catch (error) {
-        console.error('Error in update_message:', error);
         socket.emit('update_error', { 
           error: 'Failed to update message',
           details: error.message 
@@ -1032,7 +1017,6 @@ const initializeSocket = (io) => {
               try {
                 fs.unlinkSync(filePath);
               } catch (err) {
-                console.error('Error deleting file:', err);
               }
             }
           });
@@ -1056,9 +1040,7 @@ const initializeSocket = (io) => {
         });
 
         // Remove from cache
-        cacheService.removeMessageFromCache(messageIdInt, message.chat_id).catch(err => {
-          console.error('Failed to remove message from cache:', err.message);
-        });
+        cacheService.removeMessageFromCache(messageIdInt, message.chat_id).catch(() => {});
 
         // Broadcast deletion to all chat members
         io.to(`chat_${message.chat_id}`).emit('message_deleted_for_all', {
@@ -1077,7 +1059,6 @@ const initializeSocket = (io) => {
         });
 
       } catch (error) {
-        console.error('Error in delete_message_for_all:', error);
         socket.emit('delete_error', { 
           error: 'Failed to delete message',
           details: error.message 
@@ -1176,9 +1157,7 @@ const initializeSocket = (io) => {
           });
 
           // Remove from cache
-          cacheService.removeMessageFromCache(messageIdInt, message.chat_id).catch(err => {
-            console.error('Failed to remove message from cache:', err.message);
-          });
+          cacheService.removeMessageFromCache(messageIdInt, message.chat_id).catch(() => {});
 
           // Broadcast to all chat members that message is deleted
           io.to(`chat_${message.chat_id}`).emit('message_deleted_for_all', {
@@ -1205,7 +1184,6 @@ const initializeSocket = (io) => {
         });
 
       } catch (error) {
-        console.error('Error in delete_message_for_user:', error);
         socket.emit('delete_error', { 
           error: 'Failed to delete message for user',
           details: error.message 
@@ -1272,7 +1250,6 @@ const initializeSocket = (io) => {
         }
 
       } catch (error) {
-        console.error('Error in join_chat:', error);
         socket.emit('error', { message: 'Failed to join chat' });
       }
     });
@@ -1316,7 +1293,6 @@ const initializeSocket = (io) => {
         });
 
       } catch (error) {
-        console.error('Error in update_status:', error);
         socket.emit('error', { message: 'Failed to update status' });
       }
     });
@@ -1327,7 +1303,6 @@ const initializeSocket = (io) => {
         const onlineUsers = await getOnlineUsers();
         socket.emit('online_users', onlineUsers);
       } catch (err) {
-        console.error("Error fetching online users:", err);
         socket.emit('online_users', []);  // fail-safe
       }
     });
@@ -1380,7 +1355,6 @@ const initializeSocket = (io) => {
         }
 
       } catch (error) {
-        console.error('Error in send_file_message:', error);
         socket.emit('file_upload_error', { 
           error: 'Failed to upload file',
           details: error.message,
@@ -1467,7 +1441,6 @@ const initializeSocket = (io) => {
           await redis.del(`file:chunks:${tempId}`);
         }
       } catch (error) {
-        console.error('Error in send_file_message_chunk:', error);
         if (typeof ack === 'function') {
           ack({ success: false, error: error.message });
         }
@@ -1514,9 +1487,7 @@ const initializeSocket = (io) => {
               prisma.session.updateMany({
                 where: { user_id: userId },
                 data: { last_active: new Date() }
-              }).catch(err => {
-                console.warn(`⚠️  Failed to update session for user ${userId}:`, err.message);
-              });
+              }).catch(() => {});
 
               // Notify others that user is offline (fire and forget)
               socket.broadcast.emit('user_offline', {
@@ -1525,16 +1496,9 @@ const initializeSocket = (io) => {
                 lastSeen: new Date()
               });
 
-              // console.log(`User ${userData.username} (${userId}) disconnected`);
+              
             } catch (dbError) {
-              if (dbError.message === 'Update timeout') {
-                console.warn(`⚠️  Database update timeout for user ${userId}, skipping`);
-              } else if (dbError.code === 'HY000') {
-                console.warn(`Database lock timeout for user ${userId}, skipping offline update`);
-              } else {
-                console.error(`Error updating user ${userId} status:`, dbError.message);
-              }
-              // Don't throw - cleanup will continue regardless
+              // Ignore DB update errors during disconnect
             }
           }
 
@@ -1544,16 +1508,13 @@ const initializeSocket = (io) => {
         }
 
       } catch (error) {
-        console.error('Error in disconnect handler:', error.message);
       }
 
-      // console.log(`Socket disconnected: ${socket.id}`);
+      
     });
 
     // Handle errors
-    socket.on('error', (error) => {
-      console.error('Socket error:', error);
-    });
+    socket.on('error', (/* error */) => {});
   });
 };
 

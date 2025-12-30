@@ -9,12 +9,6 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY
 );
 
-/**
- * Send push notification to a specific user
- * @param {number} userId - User ID to send notification to
- * @param {object} payload - Notification payload
- * @returns {Promise<boolean>} - True if sent, false otherwise
- */
 const sendPushNotificationToUser = async (userId, payload) => {
   try {
     // Fetch user's push subscription
@@ -40,23 +34,14 @@ const sendPushNotificationToUser = async (userId, payload) => {
     return true;
   } catch (error) {
     if (error.statusCode === 410 || error.statusCode === 404) {
-      // Subscription is no longer valid, delete it
       await prisma.pushSubscription.deleteUnique({
         where: { user_id: userId }
-      }).catch(err => console.error('Error deleting subscription:', err));
-    } else {
-      console.error(`Failed to send push notification to user ${userId}:`, error.message);
+      }).catch(() => {});
     }
     return false;
   }
 };
 
-/**
- * Send push notification to multiple users
- * @param {array} userIds - Array of user IDs
- * @param {object} payload - Notification payload
- * @returns {Promise<object>} - { sent: number, failed: number }
- */
 const sendPushNotificationToMultipleUsers = async (userIds, payload) => {
   let sent = 0;
   let failed = 0;
@@ -69,11 +54,6 @@ const sendPushNotificationToMultipleUsers = async (userIds, payload) => {
   return { sent, failed };
 };
 
-/**
- * Send notification for new message
- * @param {object} messageData - Message details
- * @param {array} recipientUserIds - User IDs to notify (exclude sender)
- */
 const notifyNewMessage = async (messageData, recipientUserIds) => {
   try {
     const {
@@ -150,30 +130,19 @@ const notifyNewMessage = async (messageData, recipientUserIds) => {
             action_url: `/chat/${chat_id}`,
             is_read: false
           }
-        }).catch(err => {
-          console.error(`Error saving notification for user ${userId}:`, err.message);
-          return null;
-        })
+        }).catch(() => null)
       );
 
       await Promise.all(notificationPromises);
     } catch (dbError) {
-      console.error('Error saving notifications to database:', dbError);
-      // Don't fail the push notification if DB save fails
     }
 
     return result;
   } catch (error) {
-    console.error('Error in notifyNewMessage:', error);
     return { sent: 0, failed: recipientUserIds.length };
   }
 };
 
-/**
- * Send notification for user added to group
- * @param {number} userId - User added to group
- * @param {object} groupData - Group details
- */
 const notifyUserAddedToGroup = async (userId, groupData) => {
   try {
     const { chat_id, chat_name, added_by_username } = groupData;
@@ -207,21 +176,14 @@ const notifyUserAddedToGroup = async (userId, groupData) => {
         }
       });
     } catch (dbError) {
-      console.error(`Error saving group addition notification for user ${userId}:`, dbError.message);
     }
 
     return result;
   } catch (error) {
-    console.error('Error in notifyUserAddedToGroup:', error);
     return false;
   }
 };
 
-/**
- * Send notification for group info change
- * @param {array} userIds - Group member user IDs
- * @param {object} changeData - What changed
- */
 const notifyGroupInfoChange = async (userIds, changeData) => {
   try {
     const { chat_id, chat_name, change_type, changed_by_username } = changeData;
@@ -265,29 +227,19 @@ const notifyGroupInfoChange = async (userIds, changeData) => {
             action_url: `/chat/${chat_id}`,
             is_read: false
           }
-        }).catch(err => {
-          console.error(`Error saving group info change notification for user ${userId}:`, err.message);
-          return null;
-        })
+        }).catch(() => null)
       );
 
       await Promise.all(notificationPromises);
     } catch (dbError) {
-      console.error('Error saving group info change notifications to database:', dbError);
     }
 
     return result;
   } catch (error) {
-    console.error('Error in notifyGroupInfoChange:', error);
     return { sent: 0, failed: userIds.length };
   }
 };
 
-/**
- * Save push subscription to database
- * @param {number} userId - User ID
- * @param {object} subscription - Push subscription object
- */
 const savePushSubscription = async (userId, subscription) => {
   try {
     const { endpoint, keys } = subscription;
@@ -311,15 +263,10 @@ const savePushSubscription = async (userId, subscription) => {
 
     return result;
   } catch (error) {
-    console.error('Error saving push subscription:', error);
     throw error;
   }
 };
 
-/**
- * Remove push subscription from database
- * @param {number} userId - User ID
- */
 const removePushSubscription = async (userId) => {
   try {
     await prisma.pushSubscription.delete({
@@ -328,27 +275,16 @@ const removePushSubscription = async (userId) => {
     return true;
   } catch (error) {
     if (error.code === 'P2025') {
-      // Record not found
       return false;
     }
-    console.error('Error removing push subscription:', error);
     throw error;
   }
 };
 
-/**
- * Get VAPID public key for client
- * @returns {string} - VAPID public key
- */
 const getVapidPublicKey = () => {
   return process.env.VAPID_PUBLIC_KEY;
 };
 
-/**
- * Save notification to database
- * @param {number} userId - User ID
- * @param {object} notificationData - Notification data
- */
 const saveNotification = async (userId, notificationData) => {
   try {
     const {
@@ -368,7 +304,6 @@ const saveNotification = async (userId, notificationData) => {
 
     return notification;
   } catch (error) {
-    console.error('Error saving notification to DB:', error);
     throw error;
   }
 };

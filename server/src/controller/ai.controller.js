@@ -1,17 +1,126 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const aiService = require('../services/ai.service');
-const { Receive } = require('twilio/lib/twiml/FaxResponse');
 
-/**
- * Generate smart reply suggestions
- * POST /api/ai/smart-replies
- * Body: { chat_id: number, limit?: number }
- */
+const executeSearchMessages = async (args, userId) => {
+  try {
+    const { query, chatId, senderUsername, startDate, endDate, limit = 10 } = args;
+
+    // Build the where clause
+    const whereClause = {
+      message_text: {
+        contains: query
+      },
+      message_type: 'text', // Only search text messages
+      // Ensure user has access to these messages (is a member of the chat)
+      chat: {
+        members: {
+          some: {
+            user_id: userId
+          }
+        }
+      }
+    };
+
+    // Add optional filters
+    if (chatId) {
+      whereClause.chat_id = parseInt(chatId);
+    }
+
+    if (senderUsername) {
+      whereClause.sender = {
+        username: {
+          contains: senderUsername
+        }
+      };
+    }
+
+    if (startDate) {
+      whereClause.created_at = {
+        ...whereClause.created_at,
+        gte: new Date(startDate)
+      };
+    }
+
+    if (endDate) {
+      whereClause.created_at = {
+        ...whereClause.created_at,
+        lte: new Date(endDate)
+      };
+    }
+
+    // Execute search
+    const messages = await prisma.message.findMany({
+      where: whereClause,
+      include: {
+        sender: {
+          select: {
+            username: true,
+            full_name: true,
+            profile_pic: true
+          }
+        },
+        chat: {
+          select: {
+            chat_id: true,
+            chat_name: true,
+            chat_type: true
+          }
+        }
+      },
+      orderBy: {
+        created_at: 'desc'
+      },
+      take: Math.min(parseInt(limit), 50) // Max 50 results
+    });
+
+    // Format results for AI to understand
+    const formattedResults = messages.map(msg => ({
+      messageId: msg.message_id,
+      text: msg.message_text,
+      sender: msg.sender.full_name || msg.sender.username,
+      senderUsername: msg.sender.username,
+      chatName: msg.chat.chat_name || (msg.chat.chat_type === 'personal' ? 'Direct Message' : 'Group'),
+      chatId: msg.chat.chat_id,
+      chatType: msg.chat.chat_type,
+      timestamp: msg.created_at.toISOString(),
+      relativeTime: getRelativeTime(msg.created_at)
+    }));
+
+    return {
+      success: true,
+      query: query,
+      totalResults: formattedResults.length,
+      messages: formattedResults
+    };
+
+  } catch (error) {
+    return { success: false, error: error.message, messages: [] };
+  }
+};
+
+const getRelativeTime = (date) => {
+  const now = new Date();
+  const diff = now - date;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+  return date.toLocaleDateString();
+};
+
+const functionExecutors = {
+  searchMessages: executeSearchMessages
+};
+
 exports.generateSmartReplies = async (req, res) => {
   try {
     const { chat_id, limit = 3 } = req.body;
-    const userId = req.user.user_id; // From auth middleware
+    const userId = req.user.user_id;
 
     if (!chat_id) {
       return res.status(400).json({ error: 'chat_id is required' });
@@ -77,23 +186,14 @@ exports.generateSmartReplies = async (req, res) => {
       context_messages: messages.length,
     });
   } catch (error) {
-    console.error('Error in generateSmartReplies:', error);
-    res.status(500).json({ 
-      error: 'Failed to generate smart replies',
-      details: error.message,
-    });
+    res.status(500).json({ error: 'Failed to generate smart replies', details: error.message });
   }
 };
 
-/**
- * Translate a message
- * POST /api/ai/translate
- * Body: { message_id?: number, text?: string, target_language: string, source_language?: string }
- */
 exports.translateMessage = async (req, res) => {
   try {
     const { message_id, text, target_language, source_language = 'auto' } = req.body;
-    const userId = req.user.user_id; // From auth middleware
+    const userId = req.user.user_id;
 
     if (!target_language) {
       return res.status(400).json({ error: 'target_language is required' });
@@ -145,23 +245,14 @@ exports.translateMessage = async (req, res) => {
       ...translation,
     });
   } catch (error) {
-    console.error('Error in translateMessage:', error);
-    res.status(500).json({ 
-      error: 'Failed to translate message',
-      details: error.message,
-    });
+    res.status(500).json({ error: 'Failed to translate message', details: error.message });
   }
 };
 
-/**
- * Summarize conversation
- * POST /api/ai/summarize
- * Body: { chat_id: number, message_count?: number, summary_type?: 'brief'|'detailed'|'bullet' }
- */
 exports.summarizeConversation = async (req, res) => {
   try {
     const { chat_id, message_count = 50, summary_type = 'brief' } = req.body;
-    const userId = req.user.user_id; // From auth middleware
+    const userId = req.user.user_id;
 
     if (!chat_id) {
       return res.status(400).json({ error: 'chat_id is required' });
@@ -232,19 +323,10 @@ exports.summarizeConversation = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error in summarizeConversation:', error);
-    res.status(500).json({ 
-      error: 'Failed to summarize conversation',
-      details: error.message,
-    });
+    res.status(500).json({ error: 'Failed to summarize conversation', details: error.message });
   }
 };
 
-/**
- * Detect language of text
- * POST /api/ai/detect-language
- * Body: { text: string }
- */
 exports.detectLanguage = async (req, res) => {
   try {
     const { text } = req.body;
@@ -256,28 +338,16 @@ exports.detectLanguage = async (req, res) => {
     // Detect language
     const result = await aiService.detectLanguage(text);
 
-    res.status(200).json({
-      success: true,
-      ...result,
-    });
+    res.status(200).json({ success: true, ...result });
   } catch (error) {
-    console.error('Error in detectLanguage:', error);
-    res.status(500).json({ 
-      error: 'Failed to detect language',
-      details: error.message,
-    });
+    res.status(500).json({ error: 'Failed to detect language', details: error.message });
   }
 };
 
-/**
- * Generate conversation starters
- * POST /api/ai/conversation-starters
- * Body: { chat_id: number }
- */
 exports.generateConversationStarters = async (req, res) => {
   try {
     const { chat_id } = req.body;
-    const userId = req.user.user_id; // From auth middleware
+    const userId = req.user.user_id;
 
     if (!chat_id) {
       return res.status(400).json({ error: 'chat_id is required' });
@@ -300,52 +370,34 @@ exports.generateConversationStarters = async (req, res) => {
       return res.status(403).json({ error: 'You are not a member of this chat' });
     }
 
-    recipientName = '';
-
-    if(chat.chat_type == 'private') {
+    let recipientName = '';
+    if (chat.chat_type == 'private') {
       const otherMember = chat.members.find(member => member.user_id !== userId);
-      const otherUserId = otherMember ? otherMember.user_id : null;
-
-      const users = await prisma.user.findUnique({
-        where: { user_id: otherUserId },
-        select: { full_name: true }
-      });
-
-      recipientName = users.full_name.split(' ')[0];
+      if (otherMember) {
+        const user = await prisma.user.findUnique({
+          where: { user_id: otherMember.user_id },
+          select: { full_name: true }
+        });
+        recipientName = user?.full_name?.split(' ')[0] || '';
+      }
     }
 
-    // Prepare context
     const context = {
       chatType: chat.is_group_chat ? 'group' : 'direct',
       chatName: chat.chat_name,
-      recipientName: recipientName
+      recipientName
     };
 
-    // Generate starters
     const starters = await aiService.generateConversationStarters(context);
-
-    res.status(200).json({
-      success: true,
-      chat_id: parseInt(chat_id),
-      starters,
-    });
+    res.status(200).json({ success: true, chat_id: parseInt(chat_id), starters });
   } catch (error) {
-    console.error('Error in generateConversationStarters:', error);
-    res.status(500).json({ 
-      error: 'Failed to generate conversation starters',
-      details: error.message,
-    });
+    res.status(500).json({ error: 'Failed to generate conversation starters', details: error.message });
   }
 };
 
-/**
- * Check AI service status
- * GET /api/ai/status
- */
 exports.checkStatus = async (req, res) => {
   try {
     const isConfigured = aiService.isConfigured();
-    
     res.status(200).json({
       success: true,
       ai_enabled: isConfigured,
@@ -362,40 +414,104 @@ exports.checkStatus = async (req, res) => {
         : 'AI service is not configured. Please add GEMINI_API_KEY to environment variables.',
     });
   } catch (error) {
-    console.error('Error checking AI status:', error);
-    res.status(500).json({ 
-      error: 'Failed to check AI service status',
-      details: error.message,
-    });
+    res.status(500).json({ error: 'Failed to check AI service status', details: error.message });
   }
 };
 
-/**
- * AI Chat - Have a conversation with AI
- * POST /api/ai/chat
- * Body: { message: string, conversation_history?: Array }
- */
 exports.aiChat = async (req, res) => {
   try {
-    const { message, conversation_history = [] } = req.body;
+    const { message, conversation_history = [], enable_functions = true } = req.body;
     const userId = req.user.user_id;
 
     if (!message || !message.trim()) {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    const response = await aiService.generateChatResponse(message.trim(), conversation_history);
+    // If functions are disabled, use the simple chat response
+    if (!enable_functions) {
+      const response = await aiService.generateChatResponse(message.trim(), conversation_history);
+      return res.status(200).json({
+        success: true,
+        response,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
+    // Use function calling enabled chat
+    const result = await aiService.generateChatResponseWithFunctions(
+      message.trim(), 
+      conversation_history,
+      { userId }
+    );
+
+    // Check if AI wants to call a function
+    if (result.requiresFunctionExecution && result.functionCall) {
+      const { name, args } = result.functionCall;
+      
+      // Check if we have an executor for this function
+      const executor = functionExecutors[name];
+      if (!executor) {
+        return res.status(500).json({
+          error: `Unknown function: ${name}`,
+        });
+      }
+
+      const functionResult = await executor(args, userId);
+
+      // Continue chat with function result
+      const finalResponse = await aiService.continueChatWithFunctionResult(
+        result.functionCall,
+        functionResult,
+        conversation_history,
+        message.trim()
+      );
+
+      return res.status(200).json({
+        success: true,
+        response: finalResponse,
+        timestamp: new Date().toISOString(),
+        functionExecuted: {
+          name: name,
+          args: args,
+          resultSummary: {
+            success: functionResult.success,
+            totalResults: functionResult.totalResults || 0
+          }
+        }
+      });
+    }
+
+    // No function call, return direct response
     res.status(200).json({
       success: true,
-      response,
+      response: result.response,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error in aiChat:', error);
-    res.status(500).json({ 
-      error: 'Failed to generate AI response',
-      details: error.message,
-    });
+    res.status(500).json({ error: 'Failed to generate AI response', details: error.message });
+  }
+};
+
+exports.searchMessages = async (req, res) => {
+  try {
+    const { query, chat_id, sender_username, start_date, end_date, limit = 20 } = req.body;
+    const userId = req.user.user_id;
+
+    if (!query || !query.trim()) {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+
+    const result = await executeSearchMessages({
+      query: query.trim(),
+      chatId: chat_id,
+      senderUsername: sender_username,
+      startDate: start_date,
+      endDate: end_date,
+      limit
+    }, userId);
+
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to search messages', details: error.message });
   }
 };
