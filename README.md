@@ -2,8 +2,6 @@
 
 A lightweight, real-time chat application with AI-powered helpers (smart replies, translations, chat summaries), file sharing, push notifications and group/private chats.
 
-<img src="docs/screenshots/home.png" alt="Chat Window">
-
 Badges: Node.js, React, Socket.IO — MIT License
 
 ---
@@ -18,7 +16,7 @@ Badges: Node.js, React, Socket.IO — MIT License
 
 ---
 
-## Tech stack (short)
+## Tech stack 
 - Frontend: React (client/), optional Electron build
 - Backend: Node.js + Express (server/), Socket.IO
 - DB: MySQL via Prisma ORM
