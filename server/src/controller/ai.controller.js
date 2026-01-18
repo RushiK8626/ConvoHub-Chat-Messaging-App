@@ -6,13 +6,11 @@ const executeSearchMessages = async (args, userId) => {
   try {
     const { query, chatId, senderUsername, startDate, endDate, limit = 10 } = args;
 
-    // Build the where clause
     const whereClause = {
       message_text: {
         contains: query
       },
-      message_type: 'text', // Only search text messages
-      // Ensure user has access to these messages (is a member of the chat)
+      message_type: 'text',
       chat: {
         members: {
           some: {
@@ -22,7 +20,6 @@ const executeSearchMessages = async (args, userId) => {
       }
     };
 
-    // Add optional filters
     if (chatId) {
       whereClause.chat_id = parseInt(chatId);
     }
@@ -49,7 +46,6 @@ const executeSearchMessages = async (args, userId) => {
       };
     }
 
-    // Execute search
     const messages = await prisma.message.findMany({
       where: whereClause,
       include: {
@@ -71,10 +67,9 @@ const executeSearchMessages = async (args, userId) => {
       orderBy: {
         created_at: 'desc'
       },
-      take: Math.min(parseInt(limit), 50) // Max 50 results
+      take: Math.min(parseInt(limit), 50)
     });
 
-    // Format results for AI to understand
     const formattedResults = messages.map(msg => ({
       messageId: msg.message_id,
       text: msg.message_text,
@@ -126,7 +121,6 @@ exports.generateSmartReplies = async (req, res) => {
       return res.status(400).json({ error: 'chat_id is required' });
     }
 
-    // Verify user is a member of the chat
     const chatMember = await prisma.chatMember.findUnique({
       where: {
         chat_id_user_id: {
@@ -140,11 +134,10 @@ exports.generateSmartReplies = async (req, res) => {
       return res.status(403).json({ error: 'You are not a member of this chat' });
     }
 
-    // Fetch recent messages for context (last 10 messages)
     const messages = await prisma.message.findMany({
       where: {
         chat_id: parseInt(chat_id),
-        message_type: 'text', // Only use text messages for context
+        message_type: 'text',
       },
       include: {
         sender: {
@@ -167,13 +160,11 @@ exports.generateSmartReplies = async (req, res) => {
       });
     }
 
-    // Format messages for AI service
     const messageHistory = messages.reverse().map(msg => ({
       sender: msg.sender.username || msg.sender.full_name || 'User',
       text: msg.message_text,
     }));
 
-    // Generate smart replies
     const suggestions = await aiService.generateSmartReplies(
       messageHistory,
       parseInt(limit)
@@ -201,7 +192,6 @@ exports.translateMessage = async (req, res) => {
 
     let messageText = text;
 
-    // If message_id provided, fetch the message
     if (message_id) {
       const message = await prisma.message.findUnique({
         where: { message_id: parseInt(message_id) },
@@ -220,7 +210,6 @@ exports.translateMessage = async (req, res) => {
         return res.status(404).json({ error: 'Message not found' });
       }
 
-      // Verify user has access to this message's chat
       if (message.chat.members.length === 0) {
         return res.status(403).json({ error: 'You do not have access to this message' });
       }
@@ -232,7 +221,6 @@ exports.translateMessage = async (req, res) => {
       return res.status(400).json({ error: 'text or message_id is required' });
     }
 
-    // Translate the message
     const translation = await aiService.translateMessage(
       messageText,
       target_language,
@@ -258,7 +246,6 @@ exports.summarizeConversation = async (req, res) => {
       return res.status(400).json({ error: 'chat_id is required' });
     }
 
-    // Verify user is a member of the chat
     const chatMember = await prisma.chatMember.findUnique({
       where: {
         chat_id_user_id: {
@@ -272,11 +259,10 @@ exports.summarizeConversation = async (req, res) => {
       return res.status(403).json({ error: 'You are not a member of this chat' });
     }
 
-    // Fetch messages to summarize
     const messages = await prisma.message.findMany({
       where: {
         chat_id: parseInt(chat_id),
-        message_type: 'text', // Only summarize text messages
+        message_type: 'text',
       },
       include: {
         sender: {
@@ -298,14 +284,12 @@ exports.summarizeConversation = async (req, res) => {
       });
     }
 
-    // Format messages for AI service
     const formattedMessages = messages.reverse().map(msg => ({
       sender: msg.sender.username || msg.sender.full_name || 'User',
       text: msg.message_text,
       timestamp: msg.created_at,
     }));
 
-    // Generate summary
     const summary = await aiService.summarizeConversation(
       formattedMessages,
       summary_type
@@ -335,7 +319,6 @@ exports.detectLanguage = async (req, res) => {
       return res.status(400).json({ error: 'text is required' });
     }
 
-    // Detect language
     const result = await aiService.detectLanguage(text);
 
     res.status(200).json({ success: true, ...result });
@@ -353,7 +336,6 @@ exports.generateConversationStarters = async (req, res) => {
       return res.status(400).json({ error: 'chat_id is required' });
     }
 
-    // Fetch chat details
     const chat = await prisma.chat.findUnique({
       where: { chat_id: parseInt(chat_id) },
       include: {
@@ -365,7 +347,6 @@ exports.generateConversationStarters = async (req, res) => {
       return res.status(404).json({ error: 'Chat not found' });
     }
 
-    // Verify user is a member
     if (chat.members.length === 0) {
       return res.status(403).json({ error: 'You are not a member of this chat' });
     }
@@ -427,7 +408,6 @@ exports.aiChat = async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
-    // If functions are disabled, use the simple chat response
     if (!enable_functions) {
       const response = await aiService.generateChatResponse(message.trim(), conversation_history);
       return res.status(200).json({
@@ -437,18 +417,15 @@ exports.aiChat = async (req, res) => {
       });
     }
 
-    // Use function calling enabled chat
     const result = await aiService.generateChatResponseWithFunctions(
       message.trim(), 
       conversation_history,
       { userId }
     );
 
-    // Check if AI wants to call a function
     if (result.requiresFunctionExecution && result.functionCall) {
       const { name, args } = result.functionCall;
       
-      // Check if we have an executor for this function
       const executor = functionExecutors[name];
       if (!executor) {
         return res.status(500).json({
@@ -458,7 +435,6 @@ exports.aiChat = async (req, res) => {
 
       const functionResult = await executor(args, userId);
 
-      // Continue chat with function result
       const finalResponse = await aiService.continueChatWithFunctionResult(
         result.functionCall,
         functionResult,
@@ -481,7 +457,6 @@ exports.aiChat = async (req, res) => {
       });
     }
 
-    // No function call, return direct response
     res.status(200).json({
       success: true,
       response: result.response,

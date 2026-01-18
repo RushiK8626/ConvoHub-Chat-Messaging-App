@@ -50,7 +50,6 @@ exports.createMessage = async (req, res) => {
       data: statusData
     });
 
-    // Create message visibility for all members (default: visible)
     const visibilityData = chatMembers.map(member => ({
       message_id: message.message_id,
       user_id: member.user_id,
@@ -61,7 +60,6 @@ exports.createMessage = async (req, res) => {
       data: visibilityData
     });
 
-    // Fetch complete message with relations
     const completeMessage = await prisma.message.findUnique({
       where: { message_id: message.message_id },
       include: {
@@ -149,7 +147,6 @@ exports.uploadFileAndCreateMessage = async (req, res) => {
       }
     });
 
-    // Create message status and visibility for all chat members
     const chatMembers = await prisma.chatMember.findMany({
       where: { chat_id: parseInt(chat_id) },
       select: { user_id: true }
@@ -165,7 +162,6 @@ exports.uploadFileAndCreateMessage = async (req, res) => {
       data: statusData
     });
 
-    // Create message visibility for all members (default: visible)
     const visibilityData = chatMembers.map(member => ({
       message_id: message.message_id,
       user_id: member.user_id,
@@ -176,7 +172,6 @@ exports.uploadFileAndCreateMessage = async (req, res) => {
       data: visibilityData
     });
 
-    // Fetch complete message with relations
     const completeMessage = await prisma.message.findUnique({
       where: { message_id: message.message_id },
       include: {
@@ -199,7 +194,6 @@ exports.uploadFileAndCreateMessage = async (req, res) => {
       }
     });
 
-    // Emit to chat room via Socket.IO for real-time delivery
     emitFileMessage(chat_id, completeMessage);
 
     res.status(201).json(completeMessage);
@@ -257,12 +251,10 @@ exports.forwardMessage = async (req, res) => {
     const forwardedMessages = [];
     const errors = [];
 
-    // Forward to each chat
     for (const chatId of chat_ids) {
       try {
         const targetChatId = parseInt(chatId);
 
-        // Create forwarded message
         const forwardedMessage = await prisma.message.create({
           data: {
             chat_id: targetChatId,
@@ -274,7 +266,6 @@ exports.forwardMessage = async (req, res) => {
           }
         });
 
-        // Copy attachments if any
         if (originalMessage.attachments && originalMessage.attachments.length > 0) {
           const attachmentData = originalMessage.attachments.map(att => ({
             message_id: forwardedMessage.message_id,
@@ -289,7 +280,6 @@ exports.forwardMessage = async (req, res) => {
           });
         }
 
-        // Auto-restore deleted chat when new message arrives
         await prisma.chatVisibility.updateMany({
           where: {
             chat_id: targetChatId,
@@ -302,7 +292,6 @@ exports.forwardMessage = async (req, res) => {
           }
         });
 
-        // Create message status and visibility for all chat members
         const chatMembers = await prisma.chatMember.findMany({
           where: { chat_id: targetChatId },
           select: { user_id: true }
@@ -328,7 +317,6 @@ exports.forwardMessage = async (req, res) => {
           data: visibilityData
         });
 
-        // Fetch complete message with relations
         const completeMessage = await prisma.message.findUnique({
           where: { message_id: forwardedMessage.message_id },
           include: {
@@ -358,7 +346,6 @@ exports.forwardMessage = async (req, res) => {
           }
         });
 
-        // Emit to chat room via Socket.IO for real-time delivery
         emitFileMessage(targetChatId, completeMessage);
 
         forwardedMessages.push(completeMessage);
@@ -461,7 +448,7 @@ exports.getMessagesByChat = async (req, res) => {
     ]);
 
     res.json({
-      messages: messages.reverse(), // Reverse to show oldest first
+      messages: messages.reverse(),
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(totalCount / limit),

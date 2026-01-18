@@ -1,6 +1,5 @@
 const taskService = require('../services/task.service');
 
-// Create task
 exports.createTask = async (req, res) => {
     try {
         const userId = req.user.user_id;
@@ -36,7 +35,6 @@ exports.updateTask = async (req, res) => {
     }
 }
 
-// Delete task
 exports.deleteTask = async (req, res) => {
     try {
         const userId = req.user.user_id;
@@ -50,7 +48,6 @@ exports.deleteTask = async (req, res) => {
     }
 }
 
-// Toggle subtask
 exports.toggleSubtask = async (req, res) => {
     try {
         const userId = req.user.user_id;
@@ -69,7 +66,6 @@ exports.toggleSubtask = async (req, res) => {
     }
 };
 
-// Add subtask
 exports.addSubtask = async (req, res) => {
     try {
         const userId = req.user.user_id;

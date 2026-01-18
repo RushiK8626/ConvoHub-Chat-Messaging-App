@@ -2,7 +2,6 @@ const userCacheService = require('../services/user-cache.service');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Search chats by member name (private) or chat name (group)
 exports.searchChats = async (req, res) => {
   try {
     const { query, page = 1, limit = 10 } = req.query;
@@ -12,7 +11,6 @@ exports.searchChats = async (req, res) => {
     const pageNum = parseInt(page) > 0 ? parseInt(page) : 1;
     const limitNum = parseInt(limit) > 0 ? parseInt(limit) : 10;
 
-    // Find private chats (fetch all, filter in JS for case-insensitive search)
     const privateChatsRaw = await prisma.chat.findMany({
       where: { chat_type: 'private' },
       include: {
@@ -40,7 +38,6 @@ exports.searchChats = async (req, res) => {
     const privateTotal = privateChats.length;
     privateChats = privateChats.slice((pageNum - 1) * limitNum, pageNum * limitNum);
 
-    // Find group chats (fetch all, filter in JS for case-insensitive search)
     const groupChatsRaw = await prisma.chat.findMany({
       where: { chat_type: 'group' },
       select: { chat_id: true, chat_name: true }
@@ -69,7 +66,6 @@ exports.searchChats = async (req, res) => {
 
 const notificationService = require('../services/notification.service');
 
-// Create a new chat (private or group)
 exports.createChat = async (req, res) => {
   try {
     const { chat_type, chat_name, member_ids, admin_id, description } = req.body;
@@ -85,7 +81,6 @@ exports.createChat = async (req, res) => {
       return res.status(400).json({ error: 'member_ids array is required' });
     }
 
-    // If it's a string, parse it as JSON
     if (typeof member_ids === 'string') {
       try {
         parsedMemberIds = JSON.parse(member_ids);
@@ -222,7 +217,6 @@ exports.createChat = async (req, res) => {
   }
 };
 
-// Get chat by ID
 exports.getChatById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -238,7 +232,8 @@ exports.getChatById = async (req, res) => {
                 username: true,
                 full_name: true,
                 profile_pic: true,
-                status_message: true
+                status_message: true,
+                is_online: true
               }
             }
           }
@@ -281,7 +276,6 @@ exports.getChatById = async (req, res) => {
   }
 };
 
-// Get all chats for a user
 exports.getUserChats = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -371,7 +365,6 @@ exports.getUserChats = async (req, res) => {
   }
 };
 
-// Get user chats preview (only last message)
 exports.getUserChatsPreview = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -379,7 +372,6 @@ exports.getUserChatsPreview = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const userIdInt = parseInt(userId);
 
-    // Calculate unread count per chat using raw query or aggregation
     const unreadCountsPerChat = await prisma.message.groupBy({
       by: ['chat_id'],
       where: {
@@ -395,7 +387,6 @@ exports.getUserChatsPreview = async (req, res) => {
       }
     });
 
-    // Convert to map for easy lookup: { chat_id: unreadCount }
     const unreadMap = {};
     unreadCountsPerChat.forEach(item => {
       unreadMap[item.chat_id] = item._count.message_id;
@@ -466,7 +457,6 @@ exports.getUserChatsPreview = async (req, res) => {
       }
     });
 
-    // Format the chat previews
     const chatPreviews = chats.map(chat => {
       const lastMessage = chat.messages[0];
       let preview = {
@@ -483,10 +473,8 @@ exports.getUserChatsPreview = async (req, res) => {
       };
 
       if (lastMessage) {
-        // Determine preview text based on message type
         let previewText = lastMessage.message_text;
         
-        // If message has attachments and no text, show file type
         if (lastMessage.attachments && lastMessage.attachments.length > 0 && !lastMessage.message_text) {
           const attachment = lastMessage.attachments[0];
           const fileType = attachment.file_type;
@@ -528,7 +516,6 @@ exports.getUserChatsPreview = async (req, res) => {
       return preview;
     });
 
-    // Get total count for pagination
     const totalCount = await prisma.chat.count({
       where: {
         AND: [
@@ -805,7 +792,6 @@ exports.updateChat = async (req, res) => {
   }
 };
 
-// Get public chat info (no authentication required)
 exports.getChatInfo = async (req, res) => {
   try {
     const { id } = req.params;

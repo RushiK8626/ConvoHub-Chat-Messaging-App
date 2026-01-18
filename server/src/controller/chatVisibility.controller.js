@@ -39,7 +39,6 @@ exports.archiveChat = async (req, res) => {
       });
     }
 
-    // Create or update ChatVisibility record
     const visibility = await prisma.chatVisibility.upsert({
       where: {
         chat_id_user_id: {
@@ -99,7 +98,7 @@ exports.unarchiveChat = async (req, res) => {
         where: {
           message_id: { in: messageIds },
           user_id: userId,
-          is_visible: false  // Only restore if hidden
+          is_visible: false
         },
         data: {
           is_visible: true,
@@ -151,7 +150,6 @@ exports.deleteChat = async (req, res) => {
       });
     }
 
-    // Create or update ChatVisibility record
     const visibility = await prisma.chatVisibility.upsert({
       where: {
         chat_id_user_id: {
@@ -348,10 +346,8 @@ exports.getActiveChats = async (req, res) => {
       };
 
       if (lastMessage) {
-        // Determine preview text based on message type
         let previewText = lastMessage.message_text;
         
-        // If message has attachments and no text, show file type
         if (lastMessage.attachments && lastMessage.attachments.length > 0 && !lastMessage.message_text) {
           const attachment = lastMessage.attachments[0];
           const fileType = attachment.file_type;
@@ -443,8 +439,6 @@ exports.unpinChat = async (req, res) => {
   }
 };
 
-// ========== GET CHAT STATUS FOR USER ==========
-// Check if chat is archived, deleted, or active for user
 exports.getChatStatus = async (req, res) => {
   try {
     const { chatId } = req.params;
@@ -460,7 +454,6 @@ exports.getChatStatus = async (req, res) => {
     });
 
     if (!visibility) {
-      // Default to active if no record exists
       return res.json({
         chat_id: parseInt(chatId),
         user_id: userId,

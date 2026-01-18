@@ -9,16 +9,13 @@ const fs = require('fs');
 const redis = require("../config/redis");
 const { secureHeapUsed } = require('crypto');
 
-// Store io instance for use in helper functions
 let ioInstance = null;
 
-// Helper function to process complete file messages (used for both chunked and regular uploads)
 const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
   try {
     const { chat_id, message_text, fileBuffer, fileName, fileType, fileSize, tempId } = fileData;
     const sender_id = userId;
 
-    // Verify sender is a member of the chat
     const chatMember = await prisma.chatMember.findUnique({
       where: {
         chat_id_user_id: {
@@ -36,7 +33,6 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
       return;
     }
 
-    // Create unique filename
     const uploadsDir = path.join(__dirname, '../../uploads');
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(fileName);
@@ -44,18 +40,15 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
     const serverFilename = nameWithoutExt + '-' + uniqueSuffix + ext;
     const filePath = path.join(uploadsDir, serverFilename);
 
-    // Ensure uploads directory exists
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    // Convert base64 to buffer if needed
     let buffer = fileBuffer;
     if (typeof fileBuffer === 'string') {
       buffer = Buffer.from(fileBuffer, 'base64');
     }
 
-    // Write file to disk
     try {
       fs.writeFileSync(filePath, buffer);
     } catch (writeErr) {
@@ -69,7 +62,6 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
 
     const fileUrl = `/uploads/${serverFilename}`;
 
-    // Determine message type based on file type
     let messageType = 'file';
     if (fileType.startsWith('image/')) {
       messageType = 'image';
@@ -81,7 +73,6 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
       messageType = 'document';
     }
 
-    // Create message record
     const message = await prisma.message.create({
       data: {
         chat_id: parseInt(chat_id),
@@ -91,14 +82,11 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
       }
     });
 
-    // Auto-restore deleted chat when new message arrives
-    // If this chat was deleted (is_visible=false, is_archived=false), restore it
-    // BUT: Do NOT restore old messages - only the chat visibility
     await prisma.chatVisibility.updateMany({
       where: {
         chat_id: parseInt(chat_id),
         is_visible: false,
-        is_archived: false  // Only restore if deleted, not archived
+        is_archived: false
       },
       data: {
         is_visible: true,
@@ -106,7 +94,6 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
       }
     });
 
-    // Create attachment record (fileUrl is set above - either cloud URL or local path)
     const attachment = await prisma.attachment.create({
       data: {
         message_id: message.message_id,
@@ -133,7 +120,6 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
       data: statusData
     });
 
-    // Create message visibility for all members (default: visible)
     const visibilityData = chatMembers.map(member => ({
       message_id: message.message_id,
       user_id: member.user_id,
@@ -144,7 +130,6 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
       data: visibilityData
     });
 
-    // Fetch complete message with relations
     const completeMessage = await prisma.message.findUnique({
       where: { message_id: message.message_id },
       include: {
@@ -177,14 +162,11 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
       }
     });
 
-    // Broadcast to all users in the chat room
     io.to(`chat_${chat_id}`).emit('new_message', {
       ...completeMessage,
-      tempId // Include temp ID for client matching
+      tempId 
     });
 
-    // Also emit to each member's personal room to ensure delivery
-    // This is critical for new chats where users may not have joined the chat room yet
     chatMembers.forEach(member => {
       if (member.user_id !== sender_id) {
         io.to(`user_${member.user_id}`).emit('new_message', {
@@ -194,10 +176,8 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
       }
     });
 
-    // Cache the file message
     cacheService.addMessageToCache(parseInt(chat_id), completeMessage).catch(() => {});
 
-    // Send push notifications to recipients (exclude sender)
     const fileMessageRecipientIds = chatMembers
       .map(m => m.user_id)
       .filter(id => id !== sender_id);
@@ -222,7 +202,6 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
       }
     }
 
-    // Send confirmation to sender
     socket.emit('file_upload_success', {
       message_id: completeMessage.message_id,
       tempId,
@@ -244,12 +223,10 @@ const _processCompleteFileMessage = async (fileData, socket, io, userId) => {
 const initializeSocket = (io) => {
   ioInstance = io;
 
-  // Create a separate namespace for registration (no auth required)
   const registrationNamespace = io.of('/registration');
   
   registrationNamespace.on('connection', (socket) => {
 
-    // Handle registration monitoring
     socket.on('monitor_registration', async (data) => {
       const { username } = data;
       if (username) {
@@ -259,7 +236,6 @@ const initializeSocket = (io) => {
       }
     });
 
-    // Handle stop monitoring (explicit cancel from frontend)
     socket.on('cancel_registration', async (data) => {
       const { username } = data;
       if (username) {
@@ -278,18 +254,15 @@ const initializeSocket = (io) => {
       }
     });
 
-    // Handle disconnection - auto-cancel registration
     socket.on('disconnect', async () => {
       await cleanupRegistrationBySocket(socket);
     });
   });
 
-  // Create a separate namespace for login OTP (no auth required)
   const loginNamespace = io.of('/login');
   
   loginNamespace.on('connection', (socket) => {
-
-    // Handle login OTP monitoring
+  
     socket.on('monitor_login', async (data) => {
       const { userId } = data;
       if (userId) {
@@ -299,7 +272,6 @@ const initializeSocket = (io) => {
       }
     });
 
-    // Handle stop monitoring (explicit cancel from frontend)
     socket.on('cancel_login', async (data) => {
       const { userId } = data;
       if (userId) {
@@ -318,13 +290,11 @@ const initializeSocket = (io) => {
       }
     });
 
-    // Handle disconnection - auto-cancel login
     socket.on('disconnect', async () => {
       await cleanupLoginBySocket(socket);
     });
   });
 
-  // Middleware to verify JWT token for main namespace
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
@@ -335,7 +305,6 @@ const initializeSocket = (io) => {
 
       const decoded = jwtService.verifyAccessToken(token);
       
-      // Verify user exists
       const user = await prisma.user.findUnique({
         where: { user_id: decoded.user_id },
         select: {
@@ -376,7 +345,6 @@ const initializeSocket = (io) => {
 
     await redis.set(`socket:user:${socket.id}`, String(userId), { EX: 86400 });
 
-    // Update user online status in database
     await prisma.user.update({
       where: { user_id: userId },
       data: {
@@ -385,7 +353,6 @@ const initializeSocket = (io) => {
       }
     });
 
-    // Get user's chats and join chat rooms
     const userChats = await prisma.chatMember.findMany({
       where: { user_id: userId },
       include: {
@@ -399,16 +366,12 @@ const initializeSocket = (io) => {
       }
     });
 
-    // Join user to their chat rooms
     userChats.forEach(chatMember => {
       socket.join(`chat_${chatMember.chat_id}`);
     });
 
-    // Join user to their personal notification room for direct events
-    // This allows the user to receive direct notifications like:
     socket.join(`user_${userId}`);
 
-    // Create/update user session
     await prisma.session.create({
       data: {
         user_id: userId,
@@ -417,14 +380,12 @@ const initializeSocket = (io) => {
         last_active: new Date()
       }
     }).catch(() => {
-      // Session might already exist, update it
       prisma.session.updateMany({
         where: { user_id: userId },
         data: { last_active: new Date() }
       });
     });
 
-    // Notify other users that this user is online
     socket.broadcast.emit('user_online', {
       user_id: userId,
       username: user.username,
@@ -432,22 +393,17 @@ const initializeSocket = (io) => {
       status: 'online'
     });
 
-    // Send confirmation to user
     socket.emit('connected', {
       message: 'Successfully connected',
       user: user,
       chats: userChats
     });
 
-
-    // ========== TEXT MESSAGE HANDLER ==========
-    // Handle real-time text message sending
     socket.on('send_message', async (messageData, ack) => {
       try {
         const { chat_id, message_text, message_type = 'text', reply_to_id, tempId } = messageData;
         const sender_id = userId;
 
-        // Validation
         if (!chat_id) {
           const errorData = { 
             error: 'chat_id is required',
@@ -468,7 +424,6 @@ const initializeSocket = (io) => {
           return;
         }
 
-        // Verify sender is a member of the chat
         const chatMember = await prisma.chatMember.findUnique({
           where: {
             chat_id_user_id: {
@@ -523,8 +478,6 @@ const initializeSocket = (io) => {
           }
         }
 
-        // Create message in database
-        // Check if this is a reply
         const messageDataToCreate = {
           chat_id: parseInt(chat_id),
           sender_id: parseInt(sender_id),
@@ -533,12 +486,10 @@ const initializeSocket = (io) => {
           created_at: new Date()
         };
 
-        // If reply_to_id is provided, mark as reply and set referenced message
         if (reply_to_id) {
           messageDataToCreate.is_reply = true;
           messageDataToCreate.referenced_message_id = parseInt(reply_to_id);
           
-          // Validate that the referenced message exists in the same chat
           const referencedMsg = await prisma.message.findUnique({
             where: { message_id: parseInt(reply_to_id) }
           });
@@ -587,20 +538,16 @@ const initializeSocket = (io) => {
           }
         });
 
-        // Get all chat members for message status and visibility creation
         const chatMembers = await prisma.chatMember.findMany({
           where: { chat_id: parseInt(chat_id) },
           select: { user_id: true }
         });
 
-        // Auto-restore deleted chat when new message arrives
-        // If this chat was deleted (is_visible=false, is_archived=false), restore it
-        // BUT: Do NOT restore old messages - only the chat visibility
         await prisma.chatVisibility.updateMany({
           where: {
             chat_id: parseInt(chat_id),
             is_visible: false,
-            is_archived: false  // Only restore if deleted, not archived
+            is_archived: false  
           },
           data: {
             is_visible: true,
@@ -608,7 +555,6 @@ const initializeSocket = (io) => {
           }
         });
 
-        // Create message status for all members
         const statusData = chatMembers.map(member => ({
           message_id: message.message_id,
           user_id: member.user_id,
@@ -619,7 +565,6 @@ const initializeSocket = (io) => {
           data: statusData
         });
 
-        // Create message visibility for all members (default: visible)
         const visibilityData = chatMembers.map(member => ({
           message_id: message.message_id,
           user_id: member.user_id,
@@ -630,7 +575,6 @@ const initializeSocket = (io) => {
           data: visibilityData
         });
 
-        // Fetch complete message with status and attachments for broadcasting
         const completeMessage = await prisma.message.findUnique({
           where: { message_id: message.message_id },
           include: {
@@ -677,14 +621,11 @@ const initializeSocket = (io) => {
           }
         });
 
-        // Emit message to all users in the chat room (including sender)
         io.to(`chat_${chat_id}`).emit('new_message', {
           ...completeMessage,
-          tempId: messageData.tempId // Send back temp ID for client matching
+          tempId: messageData.tempId 
         });
 
-        // Also emit to each member's personal room to ensure delivery
-        // This is critical for new chats where users may not have joined the chat room yet
         chatMembers.forEach(member => {
           if (member.user_id !== parseInt(sender_id)) {
             io.to(`user_${member.user_id}`).emit('new_message', {
@@ -694,10 +635,8 @@ const initializeSocket = (io) => {
           }
         });
 
-        // Cache the message for faster retrieval
         cacheService.addMessageToCache(parseInt(chat_id), completeMessage).catch(() => {});
 
-        // Send push notifications to recipients (exclude sender)
         const recipientIds = chatMembers
           .map(m => m.user_id)
           .filter(id => id !== parseInt(sender_id));
@@ -722,7 +661,6 @@ const initializeSocket = (io) => {
           }
         }
 
-        // Send specific confirmation to sender
         socket.emit('message_sent', {
           message_id: completeMessage.message_id,
           tempId: messageData.tempId,
@@ -730,7 +668,6 @@ const initializeSocket = (io) => {
           timestamp: completeMessage.created_at
         });
 
-        // Send acknowledgment callback to confirm persistence
         if (typeof ack === 'function') {
           ack({
             success: true,
@@ -749,8 +686,6 @@ const initializeSocket = (io) => {
       }
     });
 
-    // ========== MESSAGE STATUS HANDLER ==========
-    // Handle message status updates (read, delivered)
     socket.on('update_message_status', async (statusData) => {
       try {
         const { message_id, status } = statusData;
@@ -760,13 +695,11 @@ const initializeSocket = (io) => {
           return;
         }
 
-        // Validate status value
         if (!['delivered', 'read'].includes(status)) {
           socket.emit('status_error', { error: 'Invalid status. Must be "delivered" or "read"' });
           return;
         }
 
-        // Parse message_id as integer
         const parsedMessageId = parseInt(message_id);
         
         if (isNaN(parsedMessageId)) {
@@ -774,7 +707,6 @@ const initializeSocket = (io) => {
           return;
         }
 
-        // Check if message exists and user has a status record
         const existingStatus = await prisma.messageStatus.findUnique({
           where: {
             message_id_user_id: {
@@ -789,7 +721,6 @@ const initializeSocket = (io) => {
           return;
         }
 
-        // Update message status
         const updatedStatus = await prisma.messageStatus.update({
           where: {
             message_id_user_id: {
@@ -803,7 +734,6 @@ const initializeSocket = (io) => {
           }
         });
 
-        // Get message to find chat_id
         const message = await prisma.message.findUnique({
           where: { message_id: parsedMessageId },
           select: { chat_id: true, sender_id: true }
@@ -814,7 +744,6 @@ const initializeSocket = (io) => {
           return;
         }
 
-        // Broadcast status update to chat members
         io.to(`chat_${message.chat_id}`).emit('message_status_updated', {
           message_id: parsedMessageId,
           user_id: userId,
@@ -830,14 +759,11 @@ const initializeSocket = (io) => {
       }
     });
 
-    // ========== UPDATE MESSAGE HANDLER ==========
-    // Handle message editing (sender only, within 2 hours)
     socket.on('update_message', async (messageData) => {
       try {
         const { message_id, message_text } = messageData;
         const sender_id = userId;
 
-        // Validation
         if (!message_id) {
           socket.emit('update_error', { error: 'message_id is required' });
           return;
@@ -850,13 +776,11 @@ const initializeSocket = (io) => {
 
         const messageId = parseInt(message_id);
 
-        // Validate message_id format
         if (isNaN(messageId)) {
           socket.emit('update_error', { error: 'Invalid message_id' });
           return;
         }
 
-        // Fetch the message
         const message = await prisma.message.findUnique({
           where: { message_id: messageId },
           include: {
@@ -875,13 +799,11 @@ const initializeSocket = (io) => {
           return;
         }
 
-        // Check if user is the sender
         if (message.sender_id !== sender_id) {
           socket.emit('update_error', { error: 'Only the sender can edit this message' });
           return;
         }
 
-        // Check if message is within 2 hours edit window
         const createdAt = new Date(message.created_at);
         const now = new Date();
         const timeDiffInHours = (now - createdAt) / (1000 * 60 * 60);
@@ -896,7 +818,6 @@ const initializeSocket = (io) => {
           return;
         }
 
-        // Update the message
         const updatedMessage = await prisma.message.update({
           where: { message_id: messageId },
           data: {
@@ -939,7 +860,6 @@ const initializeSocket = (io) => {
           }
         });
 
-        // Broadcast updated message to all users in the chat
         io.to(`chat_${message.chat_id}`).emit('message_updated', {
           message_id: updatedMessage.message_id,
           message_text: updatedMessage.message_text,
@@ -948,7 +868,6 @@ const initializeSocket = (io) => {
           sender: updatedMessage.sender
         });
 
-        // Send confirmation to sender
         socket.emit('message_update_success', {
           message_id: updatedMessage.message_id,
           data: updatedMessage
@@ -962,13 +881,10 @@ const initializeSocket = (io) => {
       }
     });
 
-    // ========== DELETE MESSAGE HANDLER ==========
-    // Handle message deletion for all members (sender or admin only)
     socket.on('delete_message_for_all', async (data) => {
       try {
         const { message_id } = data;
 
-        // Validate message_id
         if (!message_id) {
           socket.emit('delete_error', { error: 'message_id is required' });
           return;
@@ -980,7 +896,6 @@ const initializeSocket = (io) => {
           return;
         }
 
-        // Verify message exists
         const message = await prisma.message.findUnique({
           where: { message_id: messageIdInt },
           include: { attachments: true }
@@ -990,7 +905,6 @@ const initializeSocket = (io) => {
           return socket.emit('delete_error', { error: 'Message not found' });
         }
 
-        // Check if user is sender or group admin
         const isSender = message.sender_id === userId;
         
         const isAdmin = await prisma.groupAdmin.findUnique({
@@ -1002,14 +916,12 @@ const initializeSocket = (io) => {
           }
         });
 
-        // Allow if sender OR admin
         if (!isSender && !isAdmin) {
           return socket.emit('delete_error', { 
             error: 'Only message sender or group admin can delete this message'
           });
         }
 
-        // Delete file attachments from disk
         if (message.attachments && message.attachments.length > 0) {
           message.attachments.forEach(attachment => {
             const filePath = path.join(__dirname, '../../', attachment.file_url);
@@ -1022,7 +934,6 @@ const initializeSocket = (io) => {
           });
         }
 
-        // Delete related records (in correct order)
         await prisma.messageVisibility.deleteMany({
           where: { message_id: messageIdInt }
         });
@@ -1039,10 +950,8 @@ const initializeSocket = (io) => {
           where: { message_id: messageIdInt }
         });
 
-        // Remove from cache
         cacheService.removeMessageFromCache(messageIdInt, message.chat_id).catch(() => {});
 
-        // Broadcast deletion to all chat members
         io.to(`chat_${message.chat_id}`).emit('message_deleted_for_all', {
           message_id: messageIdInt,
           chat_id: message.chat_id,
@@ -1051,7 +960,6 @@ const initializeSocket = (io) => {
           deleted_at: new Date()
         });
 
-        // Send confirmation to requester
         socket.emit('delete_success', {
           message: 'Message deleted successfully for all members',
           message_id: messageIdInt,
@@ -1066,13 +974,10 @@ const initializeSocket = (io) => {
       }
     });
 
-    // ========== DELETE MESSAGE FOR USER HANDLER ==========
-    // Handle message deletion for current user only
     socket.on('delete_message_for_user', async (data) => {
       try {
         const { message_id } = data;
 
-        // Validate message_id
         if (!message_id) {
           socket.emit('delete_error', { error: 'message_id is required' });
           return;
@@ -1084,7 +989,6 @@ const initializeSocket = (io) => {
           return;
         }
 
-        // Verify message exists
         const message = await prisma.message.findUnique({
           where: { message_id: messageIdInt },
           select: { 
@@ -1098,7 +1002,6 @@ const initializeSocket = (io) => {
           return socket.emit('delete_error', { error: 'Message not found' });
         }
 
-        // Check if user is a member of the chat
         const isUserInChat = await prisma.chatMember.findUnique({
           where: {
             chat_id_user_id: {
@@ -1112,7 +1015,6 @@ const initializeSocket = (io) => {
           return socket.emit('delete_error', { error: 'User is not a member of this chat' });
         }
 
-        // Update message visibility for this user to false
         const updatedVisibility = await prisma.messageVisibility.update({
           where: {
             message_id_user_id: {
@@ -1126,7 +1028,6 @@ const initializeSocket = (io) => {
           }
         });
 
-        // Check if message is hidden for all users
         const visibleCount = await prisma.messageVisibility.count({
           where: {
             message_id: messageIdInt,
@@ -1134,32 +1035,25 @@ const initializeSocket = (io) => {
           }
         });
 
-        // If hidden for all, delete message from database
         if (visibleCount === 0) {
-          // Delete attachments
           await prisma.attachment.deleteMany({
             where: { message_id: messageIdInt }
           });
 
-          // Delete message status
           await prisma.messageStatus.deleteMany({
             where: { message_id: messageIdInt }
           });
 
-          // Delete visibility records
           await prisma.messageVisibility.deleteMany({
             where: { message_id: messageIdInt }
           });
 
-          // Delete message
           await prisma.message.delete({
             where: { message_id: messageIdInt }
           });
 
-          // Remove from cache
           cacheService.removeMessageFromCache(messageIdInt, message.chat_id).catch(() => {});
 
-          // Broadcast to all chat members that message is deleted
           io.to(`chat_${message.chat_id}`).emit('message_deleted_for_all', {
             message_id: messageIdInt,
             chat_id: message.chat_id,
@@ -1176,7 +1070,6 @@ const initializeSocket = (io) => {
           });
         }
 
-        // Notify only the requesting user (personal deletion)
         socket.emit('delete_success', {
           message: 'Message deleted for you',
           message_id: messageIdInt,
@@ -1191,7 +1084,6 @@ const initializeSocket = (io) => {
       }
     });
 
-    // Handle typing indicator
     socket.on('typing_start', (data) => {
       const { chat_id, user_id, username } = data;
       socket.to(`chat_${chat_id}`).emit('user_typing', {
@@ -1209,12 +1101,10 @@ const initializeSocket = (io) => {
       });
     });
 
-    // Handle joining a specific chat
     socket.on('join_chat', async (data) => {
       try {
         const { chat_id } = data;
 
-        // Validate chat_id
         if (!chat_id) {
           socket.emit('error', { message: 'chat_id is required' });
           return;
@@ -1226,7 +1116,6 @@ const initializeSocket = (io) => {
           return;
         }
 
-        // Verify user is a member of the chat
         const chatMember = await prisma.chatMember.findUnique({
           where: {
             chat_id_user_id: {
@@ -1240,7 +1129,6 @@ const initializeSocket = (io) => {
           socket.join(`chat_${chatIdInt}`);
           socket.emit('chat_joined', { chat_id: chatIdInt });
           
-          // Notify others in the chat
           socket.to(`chat_${chatIdInt}`).emit('user_joined_chat', {
             user_id: userId,
             chat_id: chatIdInt
@@ -1254,7 +1142,6 @@ const initializeSocket = (io) => {
       }
     });
 
-    // Handle leaving a chat
     socket.on('leave_chat', (data) => {
       const { chat_id } = data;
       socket.leave(`chat_${chat_id}`);
@@ -1264,12 +1151,10 @@ const initializeSocket = (io) => {
       });
     });
 
-    // Handle user status updates
     socket.on('update_status', async (data) => {
       try {
         const { status_message } = data;
         
-        // Update status in database
         await prisma.user.update({
           where: { user_id: userId },
           data: { status_message }
@@ -1286,7 +1171,6 @@ const initializeSocket = (io) => {
         }
 
 
-        // Broadcast status update
         socket.broadcast.emit('user_status_updated', {
           user_id: userId,
           status_message
@@ -1297,7 +1181,6 @@ const initializeSocket = (io) => {
       }
     });
 
-    // Handle getting online users
     socket.on('get_online_users', async () => {
       try {
         const onlineUsers = await getOnlineUsers();
@@ -1307,13 +1190,10 @@ const initializeSocket = (io) => {
       }
     });
 
-    // ========== FILE UPLOAD VIA WEBSOCKET ==========
-    // Handle file upload with attachment and message
     socket.on('send_file_message', async (fileData, ack) => {
       try {
         const { chat_id, message_text, fileBuffer, fileName, fileType, fileSize, tempId } = fileData;
 
-        // Validation
         if (!chat_id) {
           socket.emit('file_upload_error', { 
             error: 'chat_id is required',
@@ -1332,7 +1212,6 @@ const initializeSocket = (io) => {
           return;
         }
 
-        // Max file size: 50MB
         const MAX_FILE_SIZE = 50 * 1024 * 1024;
         if (fileSize > MAX_FILE_SIZE) {
           socket.emit('file_upload_error', { 
@@ -1343,10 +1222,8 @@ const initializeSocket = (io) => {
           return;
         }
 
-        // Use helper function to process the file
         await _processCompleteFileMessage(fileData, socket, io, userId);
         
-        // Send acknowledgment callback to confirm persistence
         if (typeof ack === 'function') {
           ack({
             success: true,
@@ -1369,7 +1246,7 @@ const initializeSocket = (io) => {
       try {
         const { 
           tempId, 
-          chunk,  // Base64 chunk data
+          chunk, 
           chunkIndex, 
           totalChunks, 
           isFirstChunk,
@@ -1381,7 +1258,6 @@ const initializeSocket = (io) => {
           message_text
         } = chunkData;
 
-        // Store metadata on first chunk
         if (isFirstChunk) {
           await redis.hSet(`file:meta:${tempId}`, {
             chat_id: String(chat_id),
@@ -1393,39 +1269,32 @@ const initializeSocket = (io) => {
             totalChunks: String(totalChunks),
             receivedChunks: '0'
           });
-          await redis.expire(`file:meta:${tempId}`, 600); // 10 min TTL
+          await redis.expire(`file:meta:${tempId}`, 600); 
         }
 
-        // Store the chunk in a list (append to end)
         await redis.rPush(`file:chunks:${tempId}`, JSON.stringify({
           index: chunkIndex,
           data: chunk
         }));
-        await redis.expire(`file:chunks:${tempId}`, 600); // 10 min TTL
+        await redis.expire(`file:chunks:${tempId}`, 600); 
 
-        // Increment received chunks counter
         const received = await redis.hIncrBy(`file:meta:${tempId}`, 'receivedChunks', 1);
 
-        // Send ack for this chunk
         if (typeof ack === 'function') {
           ack({ success: true, chunkIndex, receivedChunks: received });
         }
 
-        // If all chunks received, combine and process
         if (isLastChunk && received === totalChunks) {
           const meta = await redis.hGetAll(`file:meta:${tempId}`);
           const chunksData = await redis.lRange(`file:chunks:${tempId}`, 0, -1);
           
-          // Parse and sort chunks by index
           const chunks = chunksData
             .map(c => JSON.parse(c))
             .sort((a, b) => a.index - b.index)
             .map(c => c.data);
           
-          // Combine all chunks
           const completeBase64 = chunks.join('');
           
-          // Process the complete file
           await _processCompleteFileMessage({
             chat_id: parseInt(meta.chat_id),
             fileName: meta.fileName,
@@ -1436,7 +1305,6 @@ const initializeSocket = (io) => {
             tempId
           }, socket, io, parseInt(meta.userId));
           
-          // Clean up
           await redis.del(`file:meta:${tempId}`);
           await redis.del(`file:chunks:${tempId}`);
         }
@@ -1447,28 +1315,22 @@ const initializeSocket = (io) => {
       }
     });
 
-    // ========== UPLOAD PROGRESS TRACKING (OPTIONAL) ==========
-    // Track upload progress for large files
     socket.on('file_upload_progress', (progressData) => {
       const { chat_id, progress, tempId } = progressData;
-      // Broadcast progress to sender only (or to all users in chat if desired)
       socket.emit('file_upload_progress_update', {
-        progress, // 0-100
+        progress,
         tempId
       });
     });
 
-    // ========== USER DISCONNECT ==========
     socket.on('disconnect', async () => {
       try {
         const userIdStr = await redis.get(`socket:user:${socket.id}`);
         const userId = userIdStr ? parseInt(userIdStr) : null;
         
         if (userId) {
-          // Update last seen time
           const userData = await redis.hGetAll(`active:user:${userId}`);
           if (userData) {
-            // Update user offline status in database with retry logic and timeout
             try {
               await Promise.race([
                 prisma.user.update({
@@ -1483,13 +1345,11 @@ const initializeSocket = (io) => {
                 )
               ]);
 
-              // Update session last activity (non-critical, don't wait)
               prisma.session.updateMany({
                 where: { user_id: userId },
                 data: { last_active: new Date() }
               }).catch(() => {});
 
-              // Notify others that user is offline (fire and forget)
               socket.broadcast.emit('user_offline', {
                 user_id: userId,
                 username: userData.username,
@@ -1502,7 +1362,6 @@ const initializeSocket = (io) => {
             }
           }
 
-          // Clean up immediately (don't wait for DB)
           await redis.del(`active:user:${userId}`);
           await redis.del(`socket:user:${socket.id}`);
         }
@@ -1513,18 +1372,15 @@ const initializeSocket = (io) => {
       
     });
 
-    // Handle errors
     socket.on('error', (/* error */) => {});
   });
 };
 
-// Helper function to get online users using SCAN (non-blocking)
 const getOnlineUsers = async () => {
-  let cursor = '0';  // Redis SCAN cursor must be a string
+  let cursor = '0'; 
   const result = [];
 
   do {
-    // SCAN with MATCH pattern and COUNT hint
     const reply = await redis.scan(cursor, {
       MATCH: "active:user:*",
       COUNT: 50
@@ -1548,7 +1404,7 @@ const getOnlineUsers = async () => {
         lastSeen: userData.lastSeen
       });
     }
-  } while (cursor !== '0'); // continue until SCAN wraps around (cursor is string '0')
+  } while (cursor !== '0'); 
 
   return result;
 };
@@ -1558,10 +1414,9 @@ const cleanupRegistrationBySocket = async (socket) => {
   const authController = require('../controller/auth.controller');
   const pendingRegistrations = authController.getPendingRegistrations();
 
-  let cursor = '0';  // Redis SCAN cursor must be a string
+  let cursor = '0';
 
   do {
-    // scan Redis for keys matching registration:socket:*
     const reply = await redis.scan(cursor, {
       MATCH: "registration:socket:*",
       COUNT: 50
@@ -1575,34 +1430,30 @@ const cleanupRegistrationBySocket = async (socket) => {
 
       if (storedSocketId === socket.id) {
 
-        // extract username from key => registration:socket:<username>
         const parts = key.split(":");
         const username = parts[2];
 
-        // clear pending registration timeout
         const registrationData = pendingRegistrations.get(username);
         if (registrationData) {
           clearTimeout(registrationData.timeoutId);
           pendingRegistrations.delete(username);
         }
 
-        // delete Redis key
         await redis.del(key);
 
-        return; // done
+        return; 
       }
     }
-  } while (cursor !== '0');  // cursor is string '0'
+  } while (cursor !== '0'); 
 };
 
 const cleanupLoginBySocket = async (socket) => {
   const authController = require('../controller/auth.controller');
   const pendingLogins = authController.getPendingLogins();
 
-  let cursor = '0';  // Redis SCAN cursor must be a string
+  let cursor = '0';  
 
   do {
-    // scan Redis for keys matching registration:socket:*
     const reply = await redis.scan(cursor, {
       MATCH: "login:socket:*",
       COUNT: 50
@@ -1616,37 +1467,28 @@ const cleanupLoginBySocket = async (socket) => {
 
       if (storedSocketId === socket.id) {
 
-        // extract username from key => registration:socket:<username>
         const parts = key.split(":");
         const userId = parseInt(parts[2]);
 
-        // clear pending registration timeout
         const loginData = pendingLogins.get(userId);
         if (loginData) {
           clearTimeout(loginData.timeoutId);
           pendingLogins.delete(userId);
         }
 
-        // delete Redis key
         await redis.del(key);
 
-        return; // done
+        return; 
       }
     }
-  } while (cursor !== '0');  // cursor is string '0'
+  } while (cursor !== '0');  
 };
 
-
-
-
-// Helper function to check if user is online
 const isUserOnline = async (userId) => {
   const exists = await redis.exists(`active:user:${userId}`);
   return exists === 1;
 };
 
-
-// Helper function to send notification to specific user
 const sendNotificationToUser = async (userId, notification) => {
   const userData = await redis.hGetAll(`active:user:${userId}`);
   if (userData && userData.socketId && ioInstance) {
@@ -1656,7 +1498,6 @@ const sendNotificationToUser = async (userId, notification) => {
   return false;
 };
 
-// Helper function to broadcast event to a chat room
 const sendNotificationToChat = (chatId, event, data) => {
   if (ioInstance) {
     ioInstance.to(`chat_${chatId}`).emit(event, data);
@@ -1665,7 +1506,6 @@ const sendNotificationToChat = (chatId, event, data) => {
   return false;
 };
 
-// Helper function to emit file upload message to chat
 const emitFileMessage = async (chatId, messageData) => {
   if (ioInstance) {
     ioInstance.to(`chat_${chatId}`).emit('new_message', messageData);

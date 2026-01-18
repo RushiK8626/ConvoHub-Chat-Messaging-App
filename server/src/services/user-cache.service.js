@@ -196,19 +196,16 @@ const cacheFriendList = async (userId, friends) => {
   try {
     const friendListKey = `user:friends:${userId}`;
     
-    // Clear existing friend list
     await redis.del(friendListKey);
     
     if (friends.length === 0) {
       return true;
     }
     
-    // Store friend IDs as a list
     const friendIds = friends.map(friend => String(friend.user_id));
     await redis.rPush(friendListKey, friendIds);
     await redis.expire(friendListKey, FRIEND_LIST_TTL);
     
-    // Cache individual friend profiles
     for (const friend of friends) {
       await cacheUserProfile(friend);
     }
@@ -228,7 +225,6 @@ const getCachedFriendList = async (userId) => {
       return null;
     }
     
-    // Get profiles for each friend
     const friends = [];
     for (const friendId of friendIds) {
       const friend = await getCachedUserProfile(parseInt(friendId));
@@ -320,10 +316,8 @@ const invalidateChatMemberships = async (userId) => {
     const membershipKey = `user:chats:${userId}`;
     const chatIds = await redis.lRange(membershipKey, 0, -1);
     
-    // Delete membership list
     await redis.del(membershipKey);
     
-    // Delete individual chat details
     for (const chatId of chatIds) {
       const chatKey = `chat:${chatId}:member:${userId}`;
       await redis.del(chatKey);
@@ -359,24 +353,20 @@ const invalidateAllUserCaches = async (userId) => {
 };
 
 module.exports = {
-  // User profile
   cacheUserProfile,
   getCachedUserProfile,
   getUserProfile,
   invalidateUserProfile,
   
-  // Chat memberships
   cacheChatMemberships,
   getCachedChatMemberships,
   getChatMemberships,
   invalidateChatMemberships,
   
-  // Friend list
   cacheFriendList,
   getCachedFriendList,
   getFriendList,
   invalidateFriendList,
   
-  // Bulk operations
   invalidateAllUserCaches
 };

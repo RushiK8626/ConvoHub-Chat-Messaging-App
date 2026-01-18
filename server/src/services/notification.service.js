@@ -2,7 +2,6 @@ const webpush = require('web-push');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Configure web-push with VAPID details
 webpush.setVapidDetails(
   'mailto:convohub@example.com',
   process.env.VAPID_PUBLIC_KEY,
@@ -11,7 +10,6 @@ webpush.setVapidDetails(
 
 const sendPushNotificationToUser = async (userId, payload) => {
   try {
-    // Fetch user's push subscription
     const pushSubscription = await prisma.pushSubscription.findUnique({
       where: { user_id: userId }
     });
@@ -20,7 +18,6 @@ const sendPushNotificationToUser = async (userId, payload) => {
       return false;
     }
 
-    // Reconstruct subscription object for web-push
     const subscription = {
       endpoint: pushSubscription.endpoint,
       keys: {
@@ -29,7 +26,6 @@ const sendPushNotificationToUser = async (userId, payload) => {
       }
     };
 
-    // Send notification
     await webpush.sendNotification(subscription, JSON.stringify(payload));
     return true;
   } catch (error) {
@@ -67,7 +63,6 @@ const notifyNewMessage = async (messageData, recipientUserIds) => {
       message_type
     } = messageData;
 
-    // Truncate message text if too long
     const truncatedText = message_text && message_text.length > 50
       ? message_text.substring(0, 50) + '...'
       : (message_text || `[${message_type.toUpperCase()}]`);
@@ -75,9 +70,7 @@ const notifyNewMessage = async (messageData, recipientUserIds) => {
     let payload;
     let notificationMessage;
 
-    // Different notification format for private vs group chats
     if (chat_type === 'private') {
-      // Private chat: sender profile pic, sender name, message
       payload = {
         title: sender_username,
         body: truncatedText,
@@ -96,7 +89,6 @@ const notifyNewMessage = async (messageData, recipientUserIds) => {
       };
       notificationMessage = `${sender_username}: ${truncatedText}`;
     } else {
-      // Group chat: group chat image, group name, sender name, message
       payload = {
         title: chat_name || 'Group Chat',
         body: `${sender_username}: ${truncatedText}`,
@@ -116,10 +108,8 @@ const notifyNewMessage = async (messageData, recipientUserIds) => {
       notificationMessage = `${chat_name}: ${sender_username} - ${truncatedText}`;
     }
 
-    // Send push notifications
     const result = await sendPushNotificationToMultipleUsers(recipientUserIds, payload);
 
-    // Save notifications to database for each recipient
     try {
       const notificationPromises = recipientUserIds.map(userId =>
         prisma.notification.create({
@@ -164,7 +154,6 @@ const notifyUserAddedToGroup = async (userId, groupData) => {
 
     const result = await sendPushNotificationToUser(userId, payload);
 
-    // Save notification to database
     try {
       await prisma.notification.create({
         data: {
@@ -216,7 +205,6 @@ const notifyGroupInfoChange = async (userIds, changeData) => {
 
     const result = await sendPushNotificationToMultipleUsers(userIds, payload);
 
-    // Save notifications to database for each user
     try {
       const notificationPromises = userIds.map(userId =>
         prisma.notification.create({
@@ -244,7 +232,6 @@ const savePushSubscription = async (userId, subscription) => {
   try {
     const { endpoint, keys } = subscription;
 
-    // Upsert (update or create) subscription
     const result = await prisma.pushSubscription.upsert({
       where: { user_id: userId },
       update: {

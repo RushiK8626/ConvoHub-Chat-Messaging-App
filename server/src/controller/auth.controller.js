@@ -1,7 +1,5 @@
-// In-memory store for pending password resets
-const pendingPasswordResets = new Map(); // userId -> { otpCode, expiresAt, timeoutId }
+const pendingPasswordResets = new Map();
 
-// Request password reset (send OTP)
 exports.requestPasswordReset = async (req, res) => {
   try {
     const { email } = req.body;
@@ -30,7 +28,6 @@ exports.requestPasswordReset = async (req, res) => {
   }
 };
 
-// Reset password using OTP
 exports.resetPassword = async (req, res) => {
   try {
     const { userId, otpCode, newPassword } = req.body;
@@ -68,10 +65,8 @@ const otpService = require('../services/otp.service');
 const jwtService = require('../services/jwt.service');
 const userCacheService = require('../services/user-cache.service');
 
-// In-memory store for pending registrations (use Map with automatic cleanup)
-const pendingRegistrations = new Map(); // username -> { userData, otpCode, expiresAt, timeoutId }
+const pendingRegistrations = new Map();
 
-// In-memory store for pending login OTPs
 const pendingLogins = new Map();
 
 const cleanupInterval = setInterval(() => {
@@ -158,8 +153,6 @@ exports.verifyRegistrationOTP = async (req, res) => {
 
     try {
       const { userData } = registrationData;
-
-      // Create user in the database
       const newUser = await prisma.user.create({
         data: {
           username: userData.username,
@@ -172,7 +165,6 @@ exports.verifyRegistrationOTP = async (req, res) => {
         },
       });
 
-      // Clear timeout and remove from pending registrations
       clearTimeout(registrationData.timeoutId);
       pendingRegistrations.delete(username);
 
@@ -193,7 +185,6 @@ exports.verifyRegistrationOTP = async (req, res) => {
   }
 };
 
-// Cancel registration if user leaves OTP verification page
 exports.cancelRegistration = async (req, res) => {
   try {
     const { username } = req.body;
@@ -216,7 +207,6 @@ exports.cancelRegistration = async (req, res) => {
   }
 };
 
-// Resend registration OTP (for users who didn't complete verification)
 exports.resendRegistrationOTP = async (req, res) => {
   try {
     const { username } = req.body;
@@ -233,17 +223,14 @@ exports.resendRegistrationOTP = async (req, res) => {
       });
     }
 
-    // Generate new OTP
     const newOtpCode = otpService.generateOTP();
     const newExpiresAt = Date.now() + 5 * 60 * 1000;
 
-    // Clear old timeout and set new one
     clearTimeout(registrationData.timeoutId);
     const newTimeoutId = setTimeout(() => {
       pendingRegistrations.delete(username);
     }, 5 * 60 * 1000);
 
-    // Update with new OTP and expiry
     registrationData.otpCode = newOtpCode;
     registrationData.expiresAt = newExpiresAt;
     registrationData.timeoutId = newTimeoutId;
@@ -274,7 +261,6 @@ exports.resendRegistrationOTP = async (req, res) => {
   }
 };
 
-// Export the Maps for use in socket handler
 exports.getPendingRegistrations = () => pendingRegistrations;
 exports.getPendingLogins = () => pendingLogins;
 
@@ -339,7 +325,7 @@ exports.login = async (req, res) => {
       });
     }
   } catch (error) {
-    res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({ error: "Login failed" });
   }
 };
 

@@ -1,11 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const twilio = require('twilio');
 const prisma = new PrismaClient();
-
-// Initialize Twilio client (for SMS)
-const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
-  ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-  : null;
 
 const sendEmailWithResend = async (to, subject, html) => {
   const RESEND_API_KEY = process.env.RESEND_API_KEY;

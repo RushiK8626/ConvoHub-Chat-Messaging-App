@@ -1,9 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Initialize Gemini client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Configuration
 const AI_CONFIG = {
   model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
   maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS) || 150,
@@ -100,7 +98,6 @@ const translateMessage = async (text, targetLanguage, sourceLanguage = 'auto') =
     if (!text || !text.trim()) throw new Error('Text to translate is required');
     if (!targetLanguage) throw new Error('Target language is required');
 
-    // Language name mapping for better prompts
     const languageNames = {
       'en': 'English',
       'es': 'Spanish',
@@ -150,7 +147,6 @@ const summarizeConversation = async (messages, summaryType = 'brief') => {
     if (!process.env.GEMINI_API_KEY) throw new Error('Gemini API key not configured');
     if (!messages || messages.length === 0) throw new Error('Messages to summarize are required');
 
-    // Format messages for summarization
     const conversationText = messages
       .map(msg => {
         const timestamp = msg.timestamp ? new Date(msg.timestamp).toLocaleString() : '';
@@ -227,7 +223,6 @@ const generateConversationStarters = async (context) => {
     
     let prompt;
 
-    // Shared instruction to ensure clean output
     const strictOutputRules = "IMPORTANT: Output ONLY the 3 specific message options. Do not include numbering (1., 2., 3.), bullet points, greetings to me, or phrases like 'Here are the starters'. Just return the 3 lines of text. You can use emoji in the messages.";
 
     if (chatType === 'group') {
@@ -252,7 +247,7 @@ const generateConversationStarters = async (context) => {
       .trim()
       .split('\n')
       .filter(line => line.trim())
-      .map(line => line.replace(/^\d+\.\s*/, '').trim()) // Remove numbering
+      .map(line => line.replace(/^\d+\.\s*/, '').trim()) 
       .slice(0, 3);
 
     return starters;
@@ -277,9 +272,8 @@ const generateChatResponse = async (userMessage, conversationHistory = []) => {
       },
     });
 
-    // Build conversation context from history
     const historyText = conversationHistory
-      .slice(-20) // Last 20 messages for context
+      .slice(-20) 
       .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
       .join('\n');
 
@@ -314,7 +308,6 @@ const generateChatResponseWithFunctions = async (userMessage, conversationHistor
   try {
     if (!process.env.GEMINI_API_KEY) throw new Error('Gemini API key not configured');
 
-    // Initialize model with function calling capability
     const model = genAI.getGenerativeModel({ 
       model: AI_CONFIG.model,
       generationConfig: {
@@ -324,13 +317,11 @@ const generateChatResponseWithFunctions = async (userMessage, conversationHistor
       tools: [{ functionDeclarations }],
     });
 
-    // Build conversation history for Gemini chat format
     const chatHistory = conversationHistory.slice(-20).map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [{ text: msg.content }]
     }));
 
-    // System instruction text
     const systemInstructionText = `You are a helpful, friendly AI assistant in a chat application called ConvoHub.
 You have access to functions that can help users interact with the app.
 
@@ -346,7 +337,6 @@ Be conversational and helpful. Use emojis when appropriate.
 Format responses using Markdown for readability.
 When you use a function, explain what you're doing to the user.`;
 
-    // Start chat with history
     const chat = model.startChat({
       history: chatHistory,
       systemInstruction: {
@@ -355,15 +345,13 @@ When you use a function, explain what you're doing to the user.`;
       }
     });
 
-    // Send message and check for function call
     const result = await chat.sendMessage(userMessage);
     const response = result.response;
 
-    // Check if Gemini wants to call a function
     const functionCalls = response.functionCalls();
     
     if (functionCalls && functionCalls.length > 0) {
-      const functionCall = functionCalls[0]; // Handle first function call
+      const functionCall = functionCalls[0]; 
       return {
         response: null,
         functionCall: {
@@ -374,7 +362,6 @@ When you use a function, explain what you're doing to the user.`;
       };
     }
 
-    // No function call, return text response
     return {
       response: response.text().trim(),
       functionCall: null,
@@ -399,7 +386,6 @@ const continueChatWithFunctionResult = async (functionCall, functionResult, conv
       tools: [{ functionDeclarations }],
     });
 
-    // Build conversation history
     const chatHistory = conversationHistory.slice(-20).map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [{ text: msg.content }]
@@ -418,10 +404,8 @@ If no results found, be helpful and suggest alternatives.`;
       }
     });
 
-    // Send the original message
     await chat.sendMessage(originalMessage);
 
-    // Send function result back to the model
     const result = await chat.sendMessage([
       {
         functionResponse: {

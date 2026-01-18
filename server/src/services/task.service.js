@@ -1,7 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Create new task
 const createTask = async (userId, taskData) => {
     const { title, description, status, priority, due_date, category } = taskData || {};
     const tags = Array.isArray(taskData?.tags) ? taskData.tags : [];
@@ -38,8 +37,6 @@ const createTask = async (userId, taskData) => {
     return task;
 }
 
-
-// Get all tasks for a user with filters
 const getUserTasks = async (userId, filters = {}) => {
     const { status, priority, category, search, due_date, page = 1, limit = 20 } = filters;
 
@@ -94,10 +91,7 @@ const getUserTasks = async (userId, filters = {}) => {
     };
 }
 
-
-// Update task
 const updateTask = async (taskId, userId, updateData) => {
-    // Check if user owns the task or has edit permission
     const task = await prisma.task.findFirst({
         where: {
             task_id: taskId,
@@ -111,7 +105,6 @@ const updateTask = async (taskId, userId, updateData) => {
 
     const { title, description, status, priority, due_date, category, tags, completed_at } = updateData;
 
-    // Handle status change to completed
     const updates = {
         ...(title !== undefined && { title }),
         ...(description !== undefined && { description }),
@@ -121,7 +114,6 @@ const updateTask = async (taskId, userId, updateData) => {
         ...(category !== undefined && { category })
     };
 
-    // Auto-set completed_at when status changes to completed
     if (status === 'completed' && task.status !== 'completed') {
         updates.completed_at = new Date();
     } else if (status && status !== 'completed') {
@@ -137,7 +129,6 @@ const updateTask = async (taskId, userId, updateData) => {
         }
     });
 
-    // Update tags if provided
     if (tags !== undefined) {
         await prisma.taskTag.deleteMany({ where: { task_id: taskId } });
         if (tags.length > 0) {
@@ -150,7 +141,6 @@ const updateTask = async (taskId, userId, updateData) => {
     return updatedTask;
 }
 
-// Delete task
 const deleteTask = async (taskId, userId) => {
     const task = await prisma.task.findFirst({
         where: { task_id: taskId, user_id: userId }
@@ -165,7 +155,6 @@ const deleteTask = async (taskId, userId) => {
 }
 
 
-// Toggle subtask completion
 const toggleSubtask = async (subtaskId, userId) => {
     const subtask = await prisma.subtask.findFirst({
         where: {
@@ -189,7 +178,6 @@ const toggleSubtask = async (subtaskId, userId) => {
     return updated;
 }
 
-// Add subtask
 const addSubtask = async (taskId, userId, subtaskData) => {
     const task = await prisma.task.findFirst({
         where: { task_id: taskId, user_id: userId }
