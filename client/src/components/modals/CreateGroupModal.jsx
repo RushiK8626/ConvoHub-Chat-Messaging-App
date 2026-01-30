@@ -275,7 +275,6 @@ const CreateGroupModal = ({
               />
               <label htmlFor="group-image-input" className="image-upload-label">
                 <Upload size={16} />
-                Add Image
               </label>
             </div>
           </div>

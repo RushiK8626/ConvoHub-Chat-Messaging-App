@@ -94,6 +94,7 @@
   height: 100px;
 }
 
+
 .image-preview,
 .image-placeholder {
   width: 100%;
@@ -102,10 +103,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--hover-background);
+  background: var(--accent-color);
   color: var(--accent-color);
   border: 2px dashed var(--border-color);
   object-fit: cover;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06); /* subtle shadow for pop */
+}
+
+.image-upload-container,
+.image-preview,
+.image-placeholder {
+  border-radius: 50% !important;
 }
 
 .image-input {
@@ -131,6 +139,8 @@
 
 .image-upload-label:hover {
   transform: scale(1.1);
+  background: var(--card-background) !important;
+  opacity: 1 !important;
 }
 
 .input-group {

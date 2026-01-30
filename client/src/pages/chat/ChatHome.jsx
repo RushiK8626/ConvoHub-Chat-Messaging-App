@@ -148,7 +148,7 @@ const ChatHome = () => {
         const timeB = new Date(
           b.last_message_timestamp || b.created_at || 0
         ).getTime();
-        return timeB - timeA; 
+        return timeB - timeA;
       }
       return a.pinned ? -1 : 1;
     });
@@ -454,7 +454,7 @@ const ChatHome = () => {
         chat_name: group_name,
         chat_type: "group",
         chat_image: chat_image || null,
-        members: [], 
+        members: [],
         last_message: {
           message_id: null,
           preview_text: message,
@@ -574,7 +574,6 @@ const ChatHome = () => {
     const chat = typeof chatOrId === 'object' ? chatOrId : filteredChats.find(c => c.chat_id === chatOrId);
     const isAI = chat?.isAI || chatOrId === 'ai-assistant';
 
-    // Clear new private chat user when clicking on an existing chat
     setNewPrivateChatUser(null);
 
     if (typeof window !== "undefined" && window.innerWidth < 900) {
@@ -589,11 +588,10 @@ const ChatHome = () => {
         setShowAIChat(true);
         setSelectedChatId(null);
       } else {
-        console.log(JSON.stringify(chat));
-        console.log(chatOrId);
-        handleMarkAsRead(parseInt(chat?.chat_id || chatOrId));
+        const numericChatId = parseInt(chat?.chat_id || chatOrId);
+        handleMarkAsRead(numericChatId);
         setShowAIChat(false);
-        setSelectedChatId(chat?.chat_id || chatOrId);
+        setSelectedChatId(numericChatId);
       }
     }
   };
@@ -618,7 +616,7 @@ const ChatHome = () => {
   }, [selectedChatId, userId]);
 
   const handleChatAvatarClick = (e, chat) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
 
     if (chat.chat_type === "group") {
       setSelectedChatInfo({
@@ -643,13 +641,13 @@ const ChatHome = () => {
     e.stopPropagation();
 
     const rect = e.currentTarget.getBoundingClientRect();
-    
-    newChatContextMenu.setMenu({ 
-      isOpen: true, 
-      x: rect.left + rect.width / 2, 
-      y: rect.top, 
-      position: 'top-left', 
-      maxX: window.innerWidth >= 900 ? leftPanelWidth : undefined 
+
+    newChatContextMenu.setMenu({
+      isOpen: true,
+      x: rect.left + rect.width / 2,
+      y: rect.top,
+      position: 'top-left',
+      maxX: window.innerWidth >= 900 ? leftPanelWidth : undefined
     });
   };
 
@@ -700,7 +698,7 @@ const ChatHome = () => {
       const chatId = selectedChatIdParam || selectedChatForMenu.chat_id;
 
       await markChatAsRead(chatId, currentUserId);
-      
+
       // Update local state
       setChats((prevChats) =>
         prevChats.map((c) =>
@@ -772,7 +770,7 @@ const ChatHome = () => {
 
     try {
       await exitGroupChat(selectedChatForMenu.chat_id);
-      
+
       setChats((prevChats) =>
         prevChats.filter((c) => c.chat_id !== selectedChatForMenu.chat_id)
       );
@@ -905,7 +903,7 @@ const ChatHome = () => {
     setSearchLoading(true);
     const debounceTimer = setTimeout(() => {
       searchUsersAPI(searchUsers);
-    }, 300); 
+    }, 300);
 
     return () => clearTimeout(debounceTimer);
   }, [searchUsers, searchUsersAPI]);
@@ -935,7 +933,7 @@ const ChatHome = () => {
       setShowNewChatModal(false);
       setShowNewChatConfirmation(false);
       setSelectedUserForNewChat(null);
-      
+
       if (typeof window !== "undefined" && window.innerWidth < 900) {
         navigate('/chat/new', { state: { recipient: selectedUserForNewChat } });
       } else {
@@ -1305,7 +1303,7 @@ const ChatHome = () => {
               </div>
             </SimpleBar>
           </div>
-          
+
           <NewBtn onClick={handleNewChat} />
 
           <div ref={bottomTabBarRef}>
@@ -1316,11 +1314,13 @@ const ChatHome = () => {
         <div className="right-panel">
           {showAIChat ? (
             <AIChatWindow
+              key="ai-assistant"
               isEmbedded={true}
               onClose={() => setShowAIChat(false)}
             />
           ) : (selectedChatId || newPrivateChatUser) ? (
             <ChatWindow
+              key={selectedChatId || `new-${newPrivateChatUser?.user_id}`} 
               chatId={selectedChatId}
               recipient={newPrivateChatUser}
               isEmbedded={true}
@@ -1329,9 +1329,7 @@ const ChatHome = () => {
                 setShowUserProfileModal(true);
               }}
               onChatCreated={(newChatId) => {
-                // When a new chat is created, update the selected chat ID
-                // and clear the newPrivateChatUser
-                setSelectedChatId(newChatId);
+                setSelectedChatId(parseInt(newChatId));
                 setNewPrivateChatUser(null);
               }}
             />

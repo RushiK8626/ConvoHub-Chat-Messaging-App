@@ -16,6 +16,7 @@ const OTPVerification = () => {
   const { toasts, showSuccess, showError, showInfo, removeToast } = useToast();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timer, setTimer] = useState(300);
+  const [isVerified, ] = useState(false);
   const [canResend, setCanResend] = useState(false);
   const [loading, setLoading] = useState(false);
   const inputRefs = useRef([]);
@@ -34,7 +35,6 @@ const OTPVerification = () => {
     const SOCKET_URL =
       process.env.REACT_APP_SOCKET_URL || "http://localhost:3001";
 
-    // Connect to registration namespace
     const socket = io(`${SOCKET_URL}/registration`, {
       transports: ["websocket", "polling"],
     });
@@ -45,9 +45,9 @@ const OTPVerification = () => {
       socket.emit("monitor_registration", { username });
     });
 
-    // socket.on("monitoring_started", (data) => {
-    // console.log('Monitoring started for:', data.username);
-    // });
+    socket.on("monitoring_started", (data) => {
+    console.log('Monitoring started for:', data.username);
+    });
 
     socket.on("registration_cancelled", (data) => {
       if (!verifiedRef.current) {
@@ -56,9 +56,9 @@ const OTPVerification = () => {
       }
     });
 
-    // socket.on("disconnect", () => {
-    // console.log('Registration WebSocket disconnected');
-    // });
+    socket.on("disconnect", () => {
+    console.log('Registration WebSocket disconnected');
+    });
 
     socket.on("connect_error", (err) => {
       console.error("WebSocket connection error:", err);
@@ -90,9 +90,9 @@ const OTPVerification = () => {
       socket.emit("monitor_login", { userId: Number(userId) });
     });
 
-    // socket.on("monitoring_started", (data) => {
-    //   console.log("Login monitoring started for userId:", data.userId);
-    // });
+    socket.on("monitoring_started", (data) => {
+      console.log("Login monitoring started for userId:", data.userId);
+    });
 
     socket.on("login_cancelled", (data) => {
       if (!verifiedRef.current) {
@@ -101,9 +101,9 @@ const OTPVerification = () => {
       }
     });
 
-    // socket.on("disconnect", () => {
-    // console.log('Login WebSocket disconnected');
-    // });
+    socket.on("disconnect", () => {
+    console.log('Login WebSocket disconnected');
+    });
 
     socket.on("connect_error", (err) => {
       console.error("Login WebSocket connection error:", err);
@@ -120,7 +120,7 @@ const OTPVerification = () => {
   }, [userId, type, navigate, showInfo]);
 
   useEffect(() => {
-    if (timer > 0) {
+    if (timer > 0 && !loading && !isVerified) {
       const interval = setInterval(() => {
         setTimer((prev) => prev - 1);
       }, 1000);
@@ -128,7 +128,7 @@ const OTPVerification = () => {
     } else {
       setCanResend(true);
     }
-  }, [timer]);
+  }, [timer, loading, isVerified]);
 
   useEffect(() => {
     showSuccess("OTP sent to your registered Email", 1000);
@@ -141,7 +141,6 @@ const OTPVerification = () => {
     newOtp[index] = value;
     setOtp(newOtp);
 
-    // Move to next input
     if (value !== "" && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -334,7 +333,7 @@ const OTPVerification = () => {
 
         setTimeout(() => {
           navigate("/chats");
-        }, 1000);
+        }, 2000);
       }
     } catch (err) {
       console.error("OTP verification error:", err);
