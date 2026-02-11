@@ -54,7 +54,7 @@ const ChatSummary = ({ chatId, onClose }) => {
   };
 
   return (
-    <div className="chat-summary-overlay" onClick={onClose}>
+    <div className="chat-summary-overlay blurred-light" onClick={onClose}>
       <div
         className="chat-summary-container"
         onClick={(e) => e.stopPropagation()}

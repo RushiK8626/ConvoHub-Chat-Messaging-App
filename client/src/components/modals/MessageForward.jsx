@@ -331,7 +331,7 @@ const MessageForward = ({ onClose, userId, messageId, onForward, currentChatId }
     };
 
     return (
-        <div className="message-forward-overlay" onClick={onClose}>
+        <div className="message-forward-overlay blurred-light" onClick={onClose}>
             <div className="message-forward-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="message-forward-header">
                     <h2>Forward Message</h2>

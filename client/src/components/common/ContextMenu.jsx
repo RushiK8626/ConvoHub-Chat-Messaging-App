@@ -159,7 +159,7 @@ const ContextMenu = ({
   return (
     <>
       {/* Overlay to close menu on click outside */}
-      <div className="context-menu-overlay" onClick={onClose} />
+      <div className="context-menu-overlay blurred-light" onClick={onClose} />
 
       {/* Menu Container */}
       <div

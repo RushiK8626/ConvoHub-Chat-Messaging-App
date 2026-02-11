@@ -442,7 +442,7 @@ const ChatInfoModal = ({
 
   return (
     <div
-      className="modal-overlay"
+      className="modal-overlay blurred-light"
       onClick={() => {
         // Don't close modal if context menu is open
         if (!memberContextMenu.isOpen) {

@@ -1,7 +1,7 @@
-import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { MessageCircle, Settings, ListTodo } from "lucide-react";
 import "./BottomTabBar.css";
+import LiquidGlass from 'liquid-glass-react'
 
 const BottomTabBar = ({ activeTab }) => {
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ const BottomTabBar = ({ activeTab }) => {
   };
 
   return (
-    <div className="bottom-tab-bar">
+    <div className="bottom-tab-bar blurred">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id || location.pathname === tab.path;

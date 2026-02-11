@@ -5,16 +5,6 @@ const SOCKET_URL = (
   process.env.REACT_APP_SOCKET_URL || "http://localhost:3001"
 ).replace(/\/+$/, "");
 
-// Also clean the API URL for logging
-const SERVER_URL = (
-  process.env.REACT_APP_API_URL || "http://localhost:3001"
-).replace(/\/+$/, "");
-
-// Log the Socket URL being used
-console.log("🔌 Socket URL:", SOCKET_URL);
-console.log("🔧 Environment:", process.env.NODE_ENV);
-console.log("🌐 Server URL:", SERVER_URL);
-
 class SocketService {
   constructor() {
     this.socket = null;

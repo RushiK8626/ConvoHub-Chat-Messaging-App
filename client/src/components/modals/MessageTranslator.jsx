@@ -46,7 +46,7 @@ const MessageTranslator = ({ messageText, messageId, onClose, onTranslate }) => 
   };
   
   return (
-    <div className="message-translator-overlay" onClick={onClose}>
+    <div className="message-translator-overlay blurred-light" onClick={onClose}>
       <div
         className="message-translator-container"
         onClick={(e) => e.stopPropagation()}

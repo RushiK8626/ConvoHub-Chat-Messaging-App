@@ -62,12 +62,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Hover state */
 .context-menu-item:hover:not(.disabled) {
   background-color: var(--hover-background);
   color: var(--primary-color);
+  transform: translateY(-1px);
 }
 
 /* Active state */

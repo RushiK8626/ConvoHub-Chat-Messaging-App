@@ -123,7 +123,7 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
     };
 
     return (
-        <div className="modal-overlay">
+        <div className="modal-overlay blurred-light">
             <div className="modal-container">
 
                 {/* Header */}

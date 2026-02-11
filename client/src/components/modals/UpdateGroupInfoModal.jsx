@@ -154,7 +154,7 @@ const UpdateGroupInfoModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay blurred-light" onClick={onClose}>
       <div className="update-group-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Update Group Info</h2>
