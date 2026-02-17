@@ -2,6 +2,14 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 
 const ThemeContext = createContext();
 
+const ACCENT_COLOR_MAP = {
+  blue: "#007AFF",
+  red: "#FF3B30",
+  orange: "#FF9500",
+  green: "#34C759",
+  purple: "#AF52DE",
+};
+
 export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (!context) {
@@ -20,13 +28,6 @@ const initializeTheme = () => {
 // Initialize accent color BEFORE component renders
 const initializeAccent = () => {
   const savedAccent = localStorage.getItem("accentColor") || "blue";
-  const ACCENT_COLOR_MAP = {
-    blue: "#007AFF",
-    red: "#FF3B30",
-    orange: "#FF9500",
-    green: "#34C759",
-    purple: "#AF52DE",
-  };
   const color = ACCENT_COLOR_MAP[savedAccent] || ACCENT_COLOR_MAP.blue;
   document.documentElement.style.setProperty("--accent-color", color);
   document.documentElement.style.setProperty("--primary-color", color);
@@ -37,15 +38,6 @@ const initializeAccent = () => {
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(initializeTheme);
   const [accent, setAccent] = useState(initializeAccent);
-
-  // Accent colors supported by the app (id -> hex)
-  const ACCENT_COLOR_MAP = {
-    blue: "#007AFF",
-    red: "#FF3B30",
-    orange: "#FF9500",
-    green: "#34C759",
-    purple: "#AF52DE",
-  };
 
   useEffect(() => {
     // Force apply theme to document root
@@ -70,7 +62,7 @@ export const ThemeProvider = ({ children }) => {
 
     // Trigger a reflow to ensure styles are applied
     void root.offsetWidth;
-  }, [accent, ACCENT_COLOR_MAP]);
+  }, [accent]);
 
   const toggleTheme = () => {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));

@@ -1,7 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { MessageCircle, Settings, ListTodo } from "lucide-react";
 import "./BottomTabBar.css";
-import LiquidGlass from 'liquid-glass-react'
 
 const BottomTabBar = ({ activeTab }) => {
   const navigate = useNavigate();

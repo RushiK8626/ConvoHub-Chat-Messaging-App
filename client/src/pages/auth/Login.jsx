@@ -86,7 +86,7 @@ const Login = () => {
         setLoading(false);
       }
     } else {
-      showError(newErrors);
+      Object.values(newErrors).forEach((msg) => showError(msg));
       setErrors(newErrors);
     }
   };

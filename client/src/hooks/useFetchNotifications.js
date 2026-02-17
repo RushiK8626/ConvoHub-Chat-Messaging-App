@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import config from "../config/api.config";
 
 export const useFetchNotifications = (token, userId) => {
@@ -7,7 +7,7 @@ export const useFetchNotifications = (token, userId) => {
   const [error, setError] = useState(null);
   const [notifications, setNotifications] = useState([]);
 
-  const fetchNotifications = async (limit = 20, offset = 0) => {
+  const fetchNotifications = useCallback(async (limit = 20, offset = 0) => {
     if (!token) {
       return [];
     }
@@ -46,9 +46,9 @@ export const useFetchNotifications = (token, userId) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token]);
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     if (!token) {
       return;
     }
@@ -83,7 +83,7 @@ export const useFetchNotifications = (token, userId) => {
       console.error("Error fetching unread count:", err);
       setUnreadCount(0);
     }
-  };
+  }, [token]);
 
   const markAsRead = async (notificationId) => {
     try {
