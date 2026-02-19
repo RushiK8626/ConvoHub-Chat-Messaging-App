@@ -1,0 +1,27 @@
+name: Deploy NodeJS server to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Deploy Via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_SSH_HOST }}
+          username: convohub
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ../../var/www/convohub/ConvoHub-Chat-Messaging-App/
+            git pull
+            cd server
+            npm install
+            pm2 restart convohub
