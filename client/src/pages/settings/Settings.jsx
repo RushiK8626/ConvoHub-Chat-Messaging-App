@@ -302,10 +302,6 @@ const Settings = ({ isEmbedded = false }) => {
                     <span>Logout</span>
                   </button>
                 </div>
-
-                <div className="app-version">
-                  <p>ConvoHub v1.0.0</p>
-                </div>
               </div>
             </SimpleBar>
           </div>

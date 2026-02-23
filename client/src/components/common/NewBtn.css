@@ -9,7 +9,6 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
   transition: all 0.3s ease;
   position: fixed;
   bottom: 110px;

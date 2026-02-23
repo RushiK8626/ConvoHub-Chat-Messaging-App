@@ -589,8 +589,6 @@ const ChatHome = () => {
         setShowAIChat(true);
         setSelectedChatId(null);
       } else {
-        console.log(JSON.stringify(chat));
-        console.log(chatOrId);
         handleMarkAsRead(parseInt(chat?.chat_id || chatOrId));
         setShowAIChat(false);
         setSelectedChatId(chat?.chat_id || chatOrId);

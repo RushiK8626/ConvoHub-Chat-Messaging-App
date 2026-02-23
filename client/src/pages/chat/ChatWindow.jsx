@@ -109,6 +109,12 @@ const ChatWindow = ({
   const [currentChatId, setCurrentChatId] = useState(chatId);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   
+  useEffect(() => {
+    if (chatId !== undefined && chatId !== null) {
+      setCurrentChatId(chatId);
+    }
+  }, [chatId]);
+  
   const [chatInfo, setChatInfo] = useState({
     id: chatId,
     name: "",
