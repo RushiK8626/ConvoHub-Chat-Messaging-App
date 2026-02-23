@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios"
 import { User, Mail, Lock, Phone, Eye, EyeOff } from "lucide-react";
@@ -102,161 +103,169 @@ const Register = () => {
   };
 
   return (
-    <div className="register-container">
-      <div className="register-card fade-in">
-        <div className="register-header">
-          <h1>Create Account</h1>
-          <p>Join SwiftTalk and start connecting</p>
+    <>
+      <Helmet>
+        <title>Create Account | SwiftTalk</title>
+        <meta name="description" content="Register to SwiftTalk to chat and connect." />
+        <meta property="og:title" content="Register | SwiftTalk" />
+        <meta property="og:description" content="Sign in to your ConvoHub account to chat and connect." />
+      </Helmet>
+      <div className="register-container">
+        <div className="register-card fade-in">
+          <div className="register-header">
+            <h1>Create Account</h1>
+            <p>Join SwiftTalk and start connecting</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="register-form">
+            <div className="form-group">
+              <label htmlFor="fullName">Full Name</label>
+              <div className="input-wrapper">
+                <User className="input-icon" size={20} />
+                <input
+                  type="text"
+                  id="fullName"
+                  name="fullName"
+                  className={`input-field ${errors.fullName ? "error" : ""}`}
+                  placeholder="Enter your full name"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                />
+              </div>
+              {errors.fullName && (
+                <span className="error-text">{errors.fullName}</span>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="username">Username</label>
+              <div className="input-wrapper">
+                <User className="input-icon" size={20} />
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  className={`input-field ${errors.username ? "error" : ""}`}
+                  placeholder="Choose a username"
+                  value={formData.username}
+                  onChange={handleChange}
+                />
+              </div>
+              {errors.username && (
+                <span className="error-text">{errors.username}</span>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
+              <div className="input-wrapper">
+                <Mail className="input-icon" size={20} />
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  className={`input-field ${errors.email ? "error" : ""}`}
+                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={handleChange}
+                />
+              </div>
+              {errors.email && <span className="error-text">{errors.email}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="mobile">Mobile Number</label>
+              <div className="input-wrapper">
+                <Phone className="input-icon" size={20} />
+                <input
+                  type="tel"
+                  id="mobile"
+                  name="mobile"
+                  className={`input-field ${errors.mobile ? "error" : ""}`}
+                  placeholder="Enter your mobile number"
+                  value={formData.mobile}
+                  onChange={handleChange}
+                />
+              </div>
+              {errors.mobile && (
+                <span className="error-text">{errors.mobile}</span>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <div className="input-wrapper">
+                <Lock className="input-icon" size={20} />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  name="password"
+                  className={`input-field ${errors.password ? "error" : ""}`}
+                  placeholder="Create a password"
+                  value={formData.password}
+                  onChange={handleChange}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+              {errors.password && (
+                <span className="error-text">{errors.password}</span>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirm Password</label>
+              <div className="input-wrapper">
+                <Lock className="input-icon" size={20} />
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  className={`input-field ${errors.confirmPassword ? "error" : ""
+                    }`}
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <span className="error-text">{errors.confirmPassword}</span>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              className="btn-submit-primary"
+              disabled={loading}
+            >
+              {loading ? "Creating Account..." : "Create Account"}
+            </button>
+          </form>
+
+          <div className="register-footer">
+            <p>
+              Already have an account?{" "}
+              <Link to="/login" className="login-link">
+                Sign In
+              </Link>
+            </p>
+          </div>
         </div>
-
-        <form onSubmit={handleSubmit} className="register-form">
-          <div className="form-group">
-            <label htmlFor="fullName">Full Name</label>
-            <div className="input-wrapper">
-              <User className="input-icon" size={20} />
-              <input
-                type="text"
-                id="fullName"
-                name="fullName"
-                className={`input-field ${errors.fullName ? "error" : ""}`}
-                placeholder="Enter your full name"
-                value={formData.fullName}
-                onChange={handleChange}
-              />
-            </div>
-            {errors.fullName && (
-              <span className="error-text">{errors.fullName}</span>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="username">Username</label>
-            <div className="input-wrapper">
-              <User className="input-icon" size={20} />
-              <input
-                type="text"
-                id="username"
-                name="username"
-                className={`input-field ${errors.username ? "error" : ""}`}
-                placeholder="Choose a username"
-                value={formData.username}
-                onChange={handleChange}
-              />
-            </div>
-            {errors.username && (
-              <span className="error-text">{errors.username}</span>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <div className="input-wrapper">
-              <Mail className="input-icon" size={20} />
-              <input
-                type="email"
-                id="email"
-                name="email"
-                className={`input-field ${errors.email ? "error" : ""}`}
-                placeholder="Enter your email"
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </div>
-            {errors.email && <span className="error-text">{errors.email}</span>}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="mobile">Mobile Number</label>
-            <div className="input-wrapper">
-              <Phone className="input-icon" size={20} />
-              <input
-                type="tel"
-                id="mobile"
-                name="mobile"
-                className={`input-field ${errors.mobile ? "error" : ""}`}
-                placeholder="Enter your mobile number"
-                value={formData.mobile}
-                onChange={handleChange}
-              />
-            </div>
-            {errors.mobile && (
-              <span className="error-text">{errors.mobile}</span>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <div className="input-wrapper">
-              <Lock className="input-icon" size={20} />
-              <input
-                type={showPassword ? "text" : "password"}
-                id="password"
-                name="password"
-                className={`input-field ${errors.password ? "error" : ""}`}
-                placeholder="Create a password"
-                value={formData.password}
-                onChange={handleChange}
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-            {errors.password && (
-              <span className="error-text">{errors.password}</span>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <div className="input-wrapper">
-              <Lock className="input-icon" size={20} />
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                id="confirmPassword"
-                name="confirmPassword"
-                className={`input-field ${errors.confirmPassword ? "error" : ""
-                  }`}
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-            {errors.confirmPassword && (
-              <span className="error-text">{errors.confirmPassword}</span>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            className="btn-submit-primary"
-            disabled={loading}
-          >
-            {loading ? "Creating Account..." : "Create Account"}
-          </button>
-        </form>
-
-        <div className="register-footer">
-          <p>
-            Already have an account?{" "}
-            <Link to="/login" className="login-link">
-              Sign In
-            </Link>
-          </p>
-        </div>
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
       </div>
-      <ToastContainer toasts={toasts} removeToast={removeToast} />
-    </div>
+    </>
   );
 };
 

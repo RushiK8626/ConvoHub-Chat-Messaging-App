@@ -23,17 +23,16 @@ import BlockedUsers from "./pages/settings/BlockedUsers";
 import PrivacySettings from "./pages/settings/PrivacySettings";
 import NotificationSettings from "./pages/settings/NotificationSettings";
 import Language from "./pages/settings/Language";
+import LandingPage from "./pages/LandingPage";
 import "./App.css";
 import "./styles/theme.css";
 
-// Auth context to force rerender on login/logout
 export const AuthContext = createContext({ refreshAuth: () => {} });
 
 function App() {
-  const [, setAuthState] = useState(0); // Dummy state to trigger rerender
+  const [, setAuthState] = useState(0); 
 
   const refreshAuth = () => {
-    // Force a rerender by updating a dummy state
     setAuthState((prev) => prev + 1);
   };
 
@@ -116,7 +115,9 @@ function App() {
               />
               <Route
                 path="/"
-                element={<Navigate to={hasToken ? "/chats" : "/login"} />}
+                element={
+                  hasToken ? <Navigate to="/chats" /> : <LandingPage />
+                }
               />
             </Routes>
           </div>

@@ -95,11 +95,10 @@ const Login = () => {
   return (
     <>
       <Helmet>
-        <title>SwiftTalk - Chat Messaging App</title>
-        <meta name="description" content="Chat, connect, and collaborate with SwiftTalk." />
-        <meta property="og:title" content="SwiftTalk - Chat Messaging App" />
-        <meta property="og:description" content="Chat, connect, and collaborate with SwiftTalk." />
-        {/* Add more SEO tags as needed */}
+        <title>Login | ConvoHub</title>
+        <meta name="description" content="Sign in to your SwiftTalk account to chat and connect." />
+        <meta property="og:title" content="Login | SwiftTalk" />
+        <meta property="og:description" content="Sign in to your SwiftTalk account to chat and connect." />
       </Helmet>
 
       <div className="login-container">
