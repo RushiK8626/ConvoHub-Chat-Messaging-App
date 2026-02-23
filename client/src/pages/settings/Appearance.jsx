@@ -62,7 +62,7 @@ const Appearance = ({ isEmbedded = false }) => {
         <div className="appearance-section">
           <h2 className="section-title">Theme</h2>
           <p className="section-description">
-            Choose how ConvoHub looks to you. Select a single theme, or sync
+            Choose how SwiftTalk looks to you. Select a single theme, or sync
             with your system.
           </p>
 

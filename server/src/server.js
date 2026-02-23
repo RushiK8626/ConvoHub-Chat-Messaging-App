@@ -29,7 +29,7 @@ const io = new Server(server, {
                 "http://127.0.0.1:3002",
                 "https://localhost:3002",
                 "https://127.0.0.1:3002",
-                "https://convohub-kv2qalfll-rushikeshs-projects-0260b878.vercel.app",
+                "https://switftalk.vercel.app",
                 "https://convohub-api.me"
             ];
             

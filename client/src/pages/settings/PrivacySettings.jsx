@@ -42,7 +42,7 @@ const PrivacySettings = ({ isEmbedded = false }) => {
             />
             <div className="settings-section">
                 <div className="setting-item">
-                    <h2 className="section-title">Convohub AI Assistant</h2>
+                    <h2 className="section-title">SwiftTalk AI Assistant</h2>
                     <div className="privacy-toggle">
                         <div className="toggle-label">
                             <span className="toggle-status">

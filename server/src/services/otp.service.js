@@ -15,7 +15,7 @@ const sendEmailWithResend = async (to, subject, html) => {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: process.env.EMAIL_FROM || 'ConvoHub <onboarding@resend.dev>',
+      from: process.env.EMAIL_FROM || 'SwiftTalk <onboarding@resend.dev>',
       to: [to],
       subject: subject,
       html: html,
@@ -80,17 +80,17 @@ exports.sendOTPEmail = async (email, otpCode, otpType) => {
     let subject, message;
 
     if (otpType === 'register') {
-      subject = 'Welcome to ConvoHub - Verify Your Account';
-      message = `Welcome to ConvoHub! Your verification code is:`;
+      subject = 'Welcome to SwiftTalk - Verify Your Account';
+      message = `Welcome to SwiftTalk! Your verification code is:`;
     } else if (otpType === 'login') {
-      subject = 'ConvoHub Login Verification';
-      message = `Your ConvoHub login verification code is:`;
+      subject = 'SwiftTalk Login Verification';
+      message = `Your SwiftTalk login verification code is:`;
     } else if (otpType === 'reset') {
-      subject = 'ConvoHub Password Reset';
-      message = `Your ConvoHub password reset OTP is:`;
+      subject = 'SwiftTalk Password Reset';
+      message = `Your SwiftTalk password reset OTP is:`;
     } else {
-      subject = 'ConvoHub Verification Code';
-      message = `Your ConvoHub verification code is:`;
+      subject = 'SwiftTalk Verification Code';
+      message = `Your SwiftTalk verification code is:`;
     }
 
     const html = `

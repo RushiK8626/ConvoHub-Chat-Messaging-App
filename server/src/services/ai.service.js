@@ -277,10 +277,10 @@ const generateChatResponse = async (userMessage, conversationHistory = []) => {
       .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
       .join('\n');
 
-    const prompt = `You are a helpful, friendly AI assistant in a chat application called ConvoHub. 
+    const prompt = `You are a helpful, friendly AI assistant in a chat application called SwiftTalk. 
 Be conversational, helpful, and concise in your responses. You can use emojis when appropriate to make the conversation feel natural.
-If asked about yourself, mention you're an ConvoHub AI assistant, here to help users.
-If asked who developed you, mention about ConvoHub Developers.
+If asked about yourself, mention you're a SwiftTalk AI assistant, here to help users.
+If asked who developed you, mention about SwiftTalk Developers.
 Keep responses focused and avoid being overly verbose unless the user asks for detailed explanations.
 
 IMPORTANT: Format your responses using Markdown for better readability:
@@ -322,7 +322,7 @@ const generateChatResponseWithFunctions = async (userMessage, conversationHistor
       parts: [{ text: msg.content }]
     }));
 
-    const systemInstructionText = `You are a helpful, friendly AI assistant in a chat application called ConvoHub.
+    const systemInstructionText = `You are a helpful, friendly AI assistant in a chat application called SwiftTalk.
 You have access to functions that can help users interact with the app.
 
 AVAILABLE FUNCTIONS:
@@ -391,7 +391,7 @@ const continueChatWithFunctionResult = async (functionCall, functionResult, conv
       parts: [{ text: msg.content }]
     }));
 
-    const systemInstructionText = `You are a helpful AI assistant in ConvoHub chat app.
+    const systemInstructionText = `You are a helpful AI assistant in SwiftTalk chat app.
 You just executed a function and received results. Present the results in a helpful, readable format.
 Use Markdown formatting. Be concise but informative.
 If no results found, be helpful and suggest alternatives.`;

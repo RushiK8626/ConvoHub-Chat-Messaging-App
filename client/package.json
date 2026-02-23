@@ -1,7 +1,7 @@
 {
   "description": "Messaging App",
   "main": "public/main.js",
-  "name": "convohub-client",
+  "name": "swifttalk-client",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -72,8 +72,8 @@
   },
   "build": {
     "extends": null,
-    "appId": "com.convohub.app",
-    "productName": "ConvoHub",
+    "appId": "com.swifttalk.app",
+    "productName": "SwiftTalk",
     "files": [
       "dist/**/*",
       "build/**/*",

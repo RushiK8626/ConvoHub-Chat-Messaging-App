@@ -263,7 +263,6 @@
   padding: 16px 20px;
   cursor: pointer;
   transition: all 0.3s ease;
-  /* remove default separators between chat items */
   border-bottom: none;
   animation: ease-in 0.3s ease-out;
   transform: translateY(0);
@@ -275,7 +274,6 @@
   opacity: 0.9;
 }
 
-/* Selected chat item styling */
 .chat-item.selected {
   background: var(--hover-background);
   border-left: 4px solid var(--accent-color);

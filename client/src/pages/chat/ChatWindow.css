@@ -9,12 +9,10 @@
   overflow: hidden;
 }
 
-/* Wrapper for conversation starters */
 .conversation-starters-wrapper {
   margin: 8px 5px;
 }
 
-/* Wrapper for Smart Replies - positioned just above input */
 .smart-replies-wrapper {
   position: absolute;
   bottom: 100%;

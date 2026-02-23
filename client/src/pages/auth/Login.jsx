@@ -95,10 +95,10 @@ const Login = () => {
   return (
     <>
       <Helmet>
-        <title>ConvoHub - Chat Messaging App</title>
-        <meta name="description" content="Chat, connect, and collaborate with ConvoHub." />
-        <meta property="og:title" content="ConvoHub - Chat Messaging App" />
-        <meta property="og:description" content="Chat, connect, and collaborate with ConvoHub." />
+        <title>SwiftTalk - Chat Messaging App</title>
+        <meta name="description" content="Chat, connect, and collaborate with SwiftTalk." />
+        <meta property="og:title" content="SwiftTalk - Chat Messaging App" />
+        <meta property="og:description" content="Chat, connect, and collaborate with SwiftTalk." />
         {/* Add more SEO tags as needed */}
       </Helmet>
 
@@ -106,7 +106,7 @@ const Login = () => {
         <ToastContainer toasts={toasts} removeToast={removeToast} />
         <div className="login-card fade-in">
           <div className="login-header">
-            <h1>Welcome to ConvoHub</h1>
+            <h1>Welcome to SwiftTalk</h1>
             <p>Sign in to continue your conversations</p>
           </div>
 

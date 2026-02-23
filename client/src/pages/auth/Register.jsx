@@ -106,7 +106,7 @@ const Register = () => {
       <div className="register-card fade-in">
         <div className="register-header">
           <h1>Create Account</h1>
-          <p>Join ConvoHub and start connecting</p>
+          <p>Join SwiftTalk and start connecting</p>
         </div>
 
         <form onSubmit={handleSubmit} className="register-form">

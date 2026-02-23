@@ -1,6 +1,6 @@
 {
-  "short_name": "ConvoHub",
-  "name": "ConvoHub - Chat Messaging App",
+  "short_name": "SwiftTalk",
+  "name": "SwiftTalk - Chat Messaging App",
   "description": "Real-time chat messaging application with push notifications",
   "icons": [
     {
