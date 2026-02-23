@@ -1,8 +1,17 @@
-# ConvoHub 💬
+# <img src="/client/public/logo192.png" width="32" height="32" align="center"> SwiftTalk
 
 A lightweight, real-time chat application with AI-powered helpers (smart replies, translations, chat summaries), file sharing, push notifications and group/private chats.
 
-Badges: Node.js, React, Socket.IO — MIT License
+[![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white&style=flat)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB&style=flat)](https://react.dev/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?logo=socket.io&logoColor=white&style=flat)](https://socket.io/)
+[![Express](https://img.shields.io/badge/Express-000000?logo=express&logoColor=white&style=flat)](https://expressjs.com/)
+[![MySQL](https://img.shields.io/badge/MySQL-4479A1?logo=mysql&logoColor=white&style=flat)](https://www.mysql.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-2D3748?logo=prisma&logoColor=white&style=flat)](https://www.prisma.io/)
+[![Vercel](https://img.shields.io/badge/Vercel-000000?logo=vercel&logoColor=white&style=flat)](https://vercel.com/)
+[![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Web-blue?style=flat)]()
+[![Status](https://img.shields.io/badge/status-active-brightgreen)]()
 
 ---
 
@@ -130,12 +139,10 @@ Client (client/package.json)
 - npm start — start dev server (CRA + craco)
 - npm run build — production build (build/)
 - npm test — run tests
-- npm run electron:serve — dev Electron + client (requires electron optional deps)
-- npm run deploy — vercel deploy (if configured)
 
 ---
 
-## API & socket (short)
+## API & socket
 Primary API roots (see server/src/routes):
 - /api/auth       — login, register, OTP, refresh token, logout
 - /api/users      — user profiles
@@ -161,26 +168,12 @@ Real-time:
 
 ---
 
-## Electron & production build notes
-- Client has optional Electron config and scripts (electron-builder).
-- To create desktop build:
-  - cd client && npm run electron:build
-- To serve combined app from server: build client (npm run build) and serve static build using your deployment method.
-
----
-
 ## Common troubleshooting
 - DB connection failed: check DATABASE_URL or DB_* env vars and ensure MySQL is reachable from server.
 - Redis not connecting: server will continue in-memory, but presence/scale features may be limited. Verify REDIS_URL or REDIS_HOST and REDIS_TLS if using cloud services.
 - Port conflicts: default client port 3000, server 3001 — change PORT or REACT_APP_API_URL as needed.
 - Auth issues: client stores accessToken/refreshToken in localStorage. Use /api/auth endpoints to obtain tokens.
-
----
-
-## Contributing
-- Bug reports and PRs welcome. Please run tests and follow small, focused PRs.
-- Repo contains server/ and client/ with own README (client/README.md, server/README.md) for more detailed subsystem dev notes.
-
+- 
 ---
 
 ## License & author
